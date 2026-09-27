@@ -1,5 +1,7 @@
 // Cricket Live — browser client.
-// One EventSource connection to our server; the server does all polling of the data source.
+// Polls our own API every few seconds (responses are edge-cached, so the upstream
+// source sees ~1 request per match no matter how many people are watching) and
+// detects new deliveries itself to trigger the FOUR / SIX / WICKET animations.
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -10,7 +12,8 @@ const state = {
   selectedId: new URLSearchParams(location.hash.slice(1)).get('match') || safeGet('match'),
   card: null,
   showAll: safeGet('showAll') === '1',
-  source: null,
+  timers: [],
+  failures: 0,
   seenBalls: new Set(),   // recent-ball ids already rendered (to animate only new ones)
   seenFeed: new Set(),
   prevScores: new Map(),
@@ -21,36 +24,75 @@ const state = {
 function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } }
 
-// ───────────────────────── Streaming ─────────────────────────
+// ───────────────────────── Live updates ─────────────────────────
+
+const CARD_INTERVAL_MS = 4000;       // matches the API's edge-cache lifetime
+const HIDDEN_CARD_INTERVAL_MS = 30000;
+const LIST_INTERVAL_MS = 30000;
 
 function connect() {
-  state.source?.close();
-  const url = '/api/stream' + (state.selectedId ? `?match=${encodeURIComponent(state.selectedId)}` : '');
-  const es = new EventSource(url);
-  state.source = es;
+  state.timers.forEach(clearTimeout);
+  state.timers = [];
   setConnection('Connecting…', 'muted');
+  schedule(pollList, 0);
+  if (state.selectedId) schedule(pollCard, 0);
+}
 
-  es.onopen = () => setConnection('Live', 'live');
-  es.onerror = () => setConnection('Reconnecting…', 'warn'); // EventSource retries automatically
+function schedule(fn, ms) {
+  state.timers.push(setTimeout(fn, ms));
+}
 
-  es.addEventListener('matches', (e) => {
-    state.matches = JSON.parse(e.data);
+async function getJSON(url) {
+  const res = await fetch(url, { headers: { accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+async function pollList() {
+  try {
+    state.matches = await getJSON('/api/matches');
+    ok();
     ensureSelection();
     renderRail();
-  });
-
-  es.addEventListener('update', (e) => {
-    const { match, scorecard } = JSON.parse(e.data);
-    if (match.id !== state.selectedId) return;
-    render(scorecard);
-  });
-
-  es.addEventListener('ball', (e) => {
-    const { matchId, ball } = JSON.parse(e.data);
-    if (matchId !== state.selectedId || !ball.kind || document.hidden) return;
-    celebrate(ball.kind, ball);
-  });
+  } catch {
+    fail();
+  }
+  schedule(pollList, LIST_INTERVAL_MS);
 }
+
+async function pollCard() {
+  const id = state.selectedId;
+  try {
+    const card = await getJSON(`/api/matches/${encodeURIComponent(id)}`);
+    if (id !== state.selectedId) return; // user switched matches meanwhile
+    ok();
+    const firstLoad = !state.card;
+    // New deliveries since the last poll, oldest first → celebrations.
+    const fresh = card.commentary.filter((c) => !state.seenFeed.has(c.id)).reverse();
+    render(card);
+    if (!firstLoad && !document.hidden) {
+      for (const c of fresh) if (c.kind) celebrate(c.kind, { text: c.text, dismissalText: c.dismissal });
+    }
+  } catch {
+    fail();
+  }
+  if (id === state.selectedId) schedule(pollCard, document.hidden ? HIDDEN_CARD_INTERVAL_MS : CARD_INTERVAL_MS);
+}
+
+function ok() {
+  state.failures = 0;
+  setConnection('Live', 'live');
+}
+
+function fail() {
+  state.failures += 1;
+  setConnection(state.failures > 2 ? 'Offline — retrying' : 'Reconnecting…', 'warn');
+}
+
+// Catch up immediately when the tab comes back.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.selectedId) connect();
+});
 
 function setConnection(text, kind) {
   const el = $('#connection');
@@ -224,7 +266,7 @@ function renderCommentary(card, first) {
     state.seenFeed.add(c.id);
     return `<li class="${isNew ? 'new' : ''}">
       <span class="ov">${esc(c.over)}</span>
-      ${ballChip({ label: c.label, kind: c.kind, outcome: { type: c.kind ?? guessType(c.label) } })}
+      ${ballChip({ label: c.label, kind: c.kind, outcome: { type: c.type ?? c.kind ?? guessType(c.label) } })}
       <span class="txt">${esc(c.text)}${c.dismissal ? `<span class="dismissal">${esc(c.dismissal)}</span>` : ''}</span>
     </li>`;
   }).join('');
