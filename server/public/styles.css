@@ -292,3 +292,21 @@ button { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .toast { animation: fade 2.2s ease forwards !important; }
 }
+
+/* ───────── Get the app ───────── */
+.get-app { font-size: 13px; font-weight: 600; text-decoration: none; padding: 6px 12px; border-radius: 999px; background: var(--text); color: var(--bg); white-space: nowrap; }
+@media (max-width: 520px) { .get-app { display: none; } }
+.getapp {
+  max-width: 1088px; margin: 8px auto 24px; padding: 28px; border-radius: var(--radius);
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: center;
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--six) 18%, transparent), transparent 60%), var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+@media (max-width: 860px) { .getapp { grid-template-columns: 1fr; margin: 8px 16px 24px; } }
+.getapp-title { margin: 0 0 8px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; text-transform: none; color: var(--text); }
+.getapp p { margin: 0; line-height: 1.55; font-size: 14.5px; }
+.getapp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.download { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; text-decoration: none; background: var(--text); color: var(--bg); }
+.download.is-disabled { background: var(--surface-2); color: var(--text-2); cursor: default; pointer-events: none; }
+.getapp-shots { display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 22px 12px; border-radius: 14px; background: #1a1f2a; overflow: hidden; }
+.getapp-shots img { max-width: 100%; height: auto; }

@@ -5,6 +5,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings: AppSettings
     let viewModel: ScoreViewModel
+    let updates: UpdateChecker
     private(set) lazy var actions = AppActions(
         openSettings: { [weak self] in self?.openSettings() },
         quit: { NSApp.terminate(nil) }
@@ -16,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     override init() {
         settings = AppSettings()
         viewModel = ScoreViewModel(settings: settings)
+        let settings = self.settings
+        updates = UpdateChecker(serverURL: { settings.resolvedServerURL })
         super.init()
     }
 
@@ -45,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             overlay = OverlayController(viewModel: viewModel, settings: settings, actions: actions)
         }
         viewModel.start()
+        updates.start()
 
         #if DEBUG
         if OverlaySelfTest.isEnabled {

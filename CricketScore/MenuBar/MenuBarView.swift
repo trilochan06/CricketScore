@@ -4,6 +4,7 @@ import SwiftUI
 struct MenuBarView: View {
     let viewModel: ScoreViewModel
     let settings: AppSettings
+    let updates: UpdateChecker
     let actions: AppActions
 
     var body: some View {
@@ -21,6 +22,10 @@ struct MenuBarView: View {
                     .padding(.bottom, 8)
             }
 
+            if let release = updates.available {
+                MenuRowButton(title: "Update available — v\(release.version)", symbol: "arrow.down.circle.fill", action: updates.openDownload)
+                    .foregroundStyle(Color.accentColor)
+            }
             MenuDivider()
             matchLists
             MenuDivider()

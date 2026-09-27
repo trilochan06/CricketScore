@@ -42,9 +42,14 @@ final class AppSettings {
         static let serverURL = "serverURL"
     }
 
-    /// Where the Cricket Live server runs. Override with the CRICKET_SERVER_URL environment variable.
+    /// Where the Cricket Live server runs:
+    ///   1. `CRICKET_SERVER_URL` environment variable (development),
+    ///   2. `CricketServerURL` in Info.plist (baked in by Scripts/release.sh for public builds),
+    ///   3. a local server on port 8787.
     nonisolated static let defaultServerURL: URL = {
         if let env = ProcessInfo.processInfo.environment["CRICKET_SERVER_URL"], let url = URL(string: env) { return url }
+        if let plist = Bundle.main.object(forInfoDictionaryKey: "CricketServerURL") as? String,
+           !plist.isEmpty, !plist.hasPrefix("$("), let url = URL(string: plist) { return url }
         return URL(string: "http://localhost:8787")!
     }()
 

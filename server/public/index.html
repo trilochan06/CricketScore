@@ -20,6 +20,7 @@
       <span>Cricket Live</span>
     </div>
     <div class="topbar-right">
+      <a class="get-app" href="#get-app">Get the Mac app</a>
       <span id="connection" class="pill pill-muted" role="status">Connecting…</span>
       <label class="toggle" title="Show domestic and club matches too">
         <input type="checkbox" id="show-all">
@@ -46,9 +47,26 @@
     </aside>
   </main>
 
+  <section id="get-app" class="getapp">
+    <div class="getapp-text">
+      <h2 class="getapp-title">Live scores in your MacBook's notch</h2>
+      <p class="muted">Cricket Score for Mac keeps the live score at the top of your screen — wrapped around the notch, or as a floating pill.
+        Click it for batters, bowler and every ball. Fours, sixes and wickets flash as they happen. Free, no account, no API key.</p>
+      <div class="getapp-actions">
+        <a id="download" class="download is-disabled" href="#get-app" aria-disabled="true">Coming soon</a>
+        <span id="download-meta" class="muted small">macOS 14 Sonoma or later · Apple Silicon &amp; Intel</span>
+      </div>
+    </div>
+    <div class="getapp-shots" aria-hidden="true">
+      <img src="/img/widget-notch.png" alt="" width="390" height="32">
+      <img src="/img/widget-pill.png" alt="" width="270" height="34">
+    </div>
+  </section>
+
   <footer class="footer">
     Live data from <a href="https://www.espncricinfo.com/" target="_blank" rel="noopener">ESPNcricinfo</a> ·
     unofficial fan project, not affiliated with ESPN ·
+    <a href="/privacy">Privacy</a> ·
     <span id="footer-link"></span>
   </footer>
 

@@ -86,7 +86,8 @@ function json(res, status, body, extraHeaders = {}) {
 }
 
 async function serveStatic(res, pathname) {
-  const rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, '');
+  let rel = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, '');
+  if (!path.extname(rel)) rel += '.html'; // clean URLs: /privacy → privacy.html (same as Vercel)
   const file = path.resolve(PUBLIC_DIR, rel);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return json(res, 403, { error: 'forbidden' });
   try {

@@ -9,7 +9,7 @@ struct CricketScoreApp: App {
             get: { appDelegate.settings.showMenuBarIcon },
             set: { appDelegate.settings.showMenuBarIcon = $0 })
         ) {
-            MenuBarView(viewModel: appDelegate.viewModel, settings: appDelegate.settings, actions: appDelegate.actions)
+            MenuBarView(viewModel: appDelegate.viewModel, settings: appDelegate.settings, updates: appDelegate.updates, actions: appDelegate.actions)
         } label: {
             Image(systemName: "cricket.ball.fill")
                 .accessibilityLabel("Cricket Score")
