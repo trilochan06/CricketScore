@@ -152,6 +152,15 @@ private struct DataSettings: View {
                 .onChange(of: settings.dataSource) { _, source in viewModel.setDataSource(source) }
 
                 switch settings.dataSource {
+                case .liveServer:
+                    HStack {
+                        TextField("Server URL", text: $settings.serverURL, prompt: Text(AppSettings.defaultServerURL.absoluteString))
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit { viewModel.setDataSource(.liveServer) }
+                        Button("Connect") { viewModel.setDataSource(.liveServer) }
+                    }
+                    Text("Real ball-by-ball scores from your Cricket Live server — no API key needed. Scores come from ESPNcricinfo's public feed.")
+                        .font(.caption).foregroundStyle(.secondary)
                 case .demo:
                     Picker("Simulate", selection: Binding(get: { viewModel.mockScenario },
                                                            set: { viewModel.setMockScenario($0) })) {

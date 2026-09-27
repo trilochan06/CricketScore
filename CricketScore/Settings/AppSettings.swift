@@ -39,7 +39,14 @@ final class AppSettings {
         static let rememberSelectedMatch = "rememberSelectedMatch"
         static let savedMatchID = "savedMatchID"
         static let dataSource = "dataSource"
+        static let serverURL = "serverURL"
     }
+
+    /// Where the Cricket Live server runs. Override with the CRICKET_SERVER_URL environment variable.
+    nonisolated static let defaultServerURL: URL = {
+        if let env = ProcessInfo.processInfo.environment["CRICKET_SERVER_URL"], let url = URL(string: env) { return url }
+        return URL(string: "http://localhost:8787")!
+    }()
 
     static let refreshOptions = [15, 30, 60]
 
@@ -68,6 +75,16 @@ final class AppSettings {
     }
     var savedMatchID: String? { didSet { defaults.set(savedMatchID, forKey: Key.savedMatchID) } }
     var dataSource: DataSource { didSet { defaults.set(dataSource.rawValue, forKey: Key.dataSource) } }
+    var serverURL: String { didSet { defaults.set(serverURL, forKey: Key.serverURL) } }
+
+    /// The configured server URL, or the default if the field is empty/invalid.
+    var resolvedServerURL: URL {
+        let trimmed = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), let scheme = url.scheme, ["http", "https"].contains(scheme), url.host != nil else {
+            return Self.defaultServerURL
+        }
+        return url
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -81,7 +98,8 @@ final class AppSettings {
             Key.autoShowOnMatchStart: true,
             Key.hideWhenNoLiveMatches: true,
             Key.rememberSelectedMatch: true,
-            Key.dataSource: DataSource.demo.rawValue,
+            Key.dataSource: DataSource.liveServer.rawValue,
+            Key.serverURL: Self.defaultServerURL.absoluteString,
         ])
         showOverlay = defaults.bool(forKey: Key.showOverlay)
         showMenuBarIcon = defaults.bool(forKey: Key.showMenuBarIcon)
@@ -99,6 +117,7 @@ final class AppSettings {
         hideWhenNoLiveMatches = defaults.bool(forKey: Key.hideWhenNoLiveMatches)
         rememberSelectedMatch = defaults.bool(forKey: Key.rememberSelectedMatch)
         savedMatchID = defaults.string(forKey: Key.savedMatchID)
-        dataSource = DataSource(rawValue: defaults.string(forKey: Key.dataSource) ?? "") ?? .demo
+        dataSource = DataSource(rawValue: defaults.string(forKey: Key.dataSource) ?? "") ?? .liveServer
+        serverURL = defaults.string(forKey: Key.serverURL) ?? Self.defaultServerURL.absoluteString
     }
 }

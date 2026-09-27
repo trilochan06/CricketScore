@@ -52,7 +52,7 @@ final class ScoreViewModel {
 
     init(settings: AppSettings) {
         self.settings = settings
-        let provider = ProviderFactory.make(for: settings.dataSource)
+        let provider = ProviderFactory.make(for: settings.dataSource, serverURL: settings.resolvedServerURL)
         self.service = LiveMatchService(provider: provider)
         applyProviderInfo(provider)
 
@@ -144,7 +144,7 @@ final class ScoreViewModel {
     }
 
     func setDataSource(_ source: DataSource) {
-        let provider = ProviderFactory.make(for: source)
+        let provider = ProviderFactory.make(for: source, serverURL: settings.resolvedServerURL)
         applyProviderInfo(provider)
         matches = []
         scorecard = nil
