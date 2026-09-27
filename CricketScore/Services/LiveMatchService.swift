@@ -115,7 +115,7 @@ final class LiveMatchService {
 
             failures = 0
             let live = matchesCache.filter { $0.status.isInProgress }.count
-            log.info("\(provider.displayName, privacy: .public): \(self.matchesCache.count) matches, \(live) in progress, scorecard: \(scorecard.map { "\($0.match.shortTitle) \($0.match.currentInnings?.scoreText ?? "-")" } ?? "none", privacy: .public)")
+            log.notice("\(provider.displayName, privacy: .public): \(self.matchesCache.count) matches, \(live) in progress, scorecard: \(scorecard.map { "\($0.match.shortTitle) \($0.match.currentInnings?.scoreText ?? "-")" } ?? "none", privacy: .public)")
             onEvent?(.updated(Snapshot(matches: matchesCache, scorecard: scorecard, fetchedAt: Date())))
             return nextDelay()
         } catch {
