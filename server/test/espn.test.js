@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBall, normalizeEvent, oversToBalls, ballsToOvers } from '../src/espn.js';
+import { normalizeBall, normalizeEvent, oversToBalls, ballsToOvers, decodeEntities } from '../src/espn.js';
 
 // Shapes copied from real ESPN responses (trimmed).
 const ball = (over) => ({
@@ -104,4 +104,10 @@ test('overs conversion', () => {
   assert.equal(ballsToOvers(194), '32.2');
   assert.equal(ballsToOvers(300), '50');
   assert.equal(oversToBalls('x'), 0);
+});
+
+test('decodes HTML entities in ESPN text', () => {
+  assert.equal(decodeEntities('EM Moore c &dagger;Cloete b Siboto 12'), 'EM Moore c †Cloete b Siboto 12');
+  assert.equal(decodeEntities('A &amp; B &#39;x&#39;'), "A & B 'x'");
+  assert.equal(decodeEntities('&unknown; stays'), '&unknown; stays');
 });

@@ -94,7 +94,7 @@ async function serveStatic(res, pathname) {
     const ext = path.extname(file);
     res.writeHead(200, {
       'content-type': MIME[ext] ?? 'application/octet-stream',
-      'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=300',
+      'cache-control': 'no-cache', // always revalidate so code updates show up immediately
       'x-content-type-options': 'nosniff',
     });
     res.end(body);

@@ -102,7 +102,9 @@ final class LiveMatchService {
             }
 
             var scorecard: Scorecard?
-            if let id = selectionResolver?(matchesCache),
+            let selectedID = selectionResolver?(matchesCache)
+            log.notice("selected match: \(selectedID ?? "none", privacy: .public) of \(self.matchesCache.prefix(3).map { "\($0.id):\($0.status.rawValue)" }.joined(separator: ","), privacy: .public)")
+            if let id = selectedID,
                let match = matchesCache.first(where: { $0.id == id }),
                match.status.hasScorecard {
                 let card = try await provider.fetchScorecard(matchID: id)

@@ -78,7 +78,7 @@ export function normalizeEvent(event, league) {
   const cls = comp.class ?? {};
   const format = mapFormat(cls.generalClassCard ?? cls.eventType ?? '');
   const statusType = event.status?.type ?? comp.status?.type ?? {};
-  const summary = (comp.status?.summary ?? event.status?.summary ?? '').trim();
+  const summary = decodeEntities(comp.status?.summary ?? event.status?.summary ?? '').trim();
   let status = mapStatus(statusType, summary);
   if (status === 'live' && innings.length === 0 && /starts at|yet to begin|scheduled/i.test(summary)) status = 'upcoming';
 
@@ -162,8 +162,8 @@ export function normalizeBall(item) {
     outcome,
     label: labelFor(outcome),
     kind: outcome.type === 'four' || outcome.type === 'six' || outcome.type === 'wicket' ? outcome.type : null,
-    text: (item.shortText ?? '').trim(),
-    dismissalText: item.dismissal?.dismissal ? (item.dismissal.text ?? '').trim() : '',
+    text: decodeEntities(item.shortText ?? '').trim(),
+    dismissalText: item.dismissal?.dismissal ? decodeEntities(item.dismissal.text ?? '').trim() : '',
     batter: batterFrom(item.batsman, true),
     otherBatter: batterFrom(item.otherBatsman, false),
     bowler: bowlerFrom(item.bowler),
@@ -214,7 +214,7 @@ function labelFor({ type, runs }) {
 function batterFrom(b, faced) {
   if (!b?.athlete) return null;
   return {
-    name: b.athlete.displayName ?? b.athlete.name ?? 'Batter',
+    name: decodeEntities(b.athlete.displayName ?? b.athlete.name ?? 'Batter'),
     runs: toInt(b.totalRuns),
     balls: toInt(b.faced),
     fours: toInt(b.fours),
@@ -226,7 +226,7 @@ function batterFrom(b, faced) {
 function bowlerFrom(b) {
   if (!b?.athlete) return null;
   return {
-    name: b.athlete.displayName ?? b.athlete.name ?? 'Bowler',
+    name: decodeEntities(b.athlete.displayName ?? b.athlete.name ?? 'Bowler'),
     balls: toInt(b.balls),
     maidens: toInt(b.maidens),
     runs: toInt(b.conceded),
@@ -247,6 +247,16 @@ export function oversToBalls(overs) {
 export function ballsToOvers(balls) {
   const b = Math.max(0, balls | 0);
   return b % 6 === 0 ? String(b / 6) : `${Math.trunc(b / 6)}.${b % 6}`;
+}
+
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', dagger: '†', Dagger: '‡', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘' };
+
+/** ESPN text contains HTML entities (e.g. "c &dagger;Cloete" marks the keeper). */
+export function decodeEntities(s) {
+  return String(s)
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-z]+);/gi, (m, name) => ENTITIES[name] ?? m);
 }
 
 function toInt(v) {

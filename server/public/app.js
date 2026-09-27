@@ -101,8 +101,9 @@ function setConnection(text, kind) {
 }
 
 function visibleMatches() {
-  const intl = state.matches.filter((m) => m.isInternational);
-  return state.showAll || intl.length === 0 ? state.matches : intl;
+  // Default view: internationals plus anything that's live right now.
+  const featured = state.matches.filter((m) => m.isInternational || m.status === 'live');
+  return state.showAll || featured.length === 0 ? state.matches : featured;
 }
 
 function ensureSelection() {
@@ -124,6 +125,10 @@ function select(id) {
   history.replaceState(null, '', `#match=${id}`);
   renderRail();
   $('#scoreboard').innerHTML = '<div class="skeleton">Loading…</div>';
+  $('#players').hidden = true;
+  $('#balls').hidden = true;
+  $('#commentary').innerHTML = '';
+  $('#updated').textContent = '';
   connect();
 }
 
@@ -205,7 +210,7 @@ function renderScoreboard(card, first) {
     card.target ? ['TARGET', card.target] : null,
   ].filter(Boolean);
 
-  const chase = card.target && card.runsRequired != null
+  const chase = card.target && card.runsRequired != null && ['live', 'rainDelay'].includes(m.status)
     ? `<div class="progress" title="Chase progress"><i style="width:${Math.min(100, ((card.target - card.runsRequired) / card.target) * 100).toFixed(1)}%"></i></div>` : '';
 
   $('#scoreboard').innerHTML = `

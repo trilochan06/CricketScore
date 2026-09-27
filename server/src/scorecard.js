@@ -71,7 +71,7 @@ export function buildScorecard(match, balls) {
   }
 
   const lastWicketBall = [...sameInnings].reverse().find((b) => b.outcome.type === 'wicket');
-  const hasTarget = !!s.target && !!s.ballLimit;
+  const hasTarget = !!s.target && !!s.ballLimit && match.status !== 'completed' && match.status !== 'abandoned';
 
   return {
     ...base,
