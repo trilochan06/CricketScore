@@ -423,8 +423,14 @@ fetch('/version.json', { cache: 'no-cache' })
     a.textContent = 'Download for Mac';
     a.classList.remove('is-disabled');
     a.removeAttribute('aria-disabled');
-    a.setAttribute('download', '');
-    $('#download-meta').textContent = `Version ${release.version} · macOS ${release.minimumSystemVersion ?? '14'} or later · Apple Silicon & Intel`;
+    const meta = $('#download-meta');
+    meta.textContent = `Version ${release.version} · macOS ${release.minimumSystemVersion ?? '14'} or later · Apple Silicon & Intel · `;
+    const notes = document.createElement('a');
+    notes.href = release.releaseNotes ?? 'https://github.com/trilochan06/CricketScore/releases';
+    notes.textContent = "What's new";
+    notes.target = '_blank';
+    notes.rel = 'noopener';
+    meta.append(notes);
     if (!release.notarized) $('#first-open').hidden = false;
   })
   .catch(() => {});

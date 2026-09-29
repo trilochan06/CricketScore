@@ -99,9 +99,9 @@ Hosted on Vercel from this repo (**Root Directory `server`**, framework **Other*
 ### Mac app — free, no Apple Developer account
 ```bash
 SERVER_URL="https://cricketscore-server.vercel.app" ./Scripts/release.sh 1.0.1 "What's new"
-git add server/public/downloads server/public/version.json && git commit -m "Release 1.0.1" && git push
+git add server/public/version.json && git commit -m "Release 1.0.1" && git push
 ```
-This builds a universal (Apple Silicon + Intel) app with only the Command Line Tools, packages `CricketScore.dmg` (with a "How to open" note), and publishes it plus `version.json` to the website. The site's **Download for Mac** button and one-time "Open Anyway" instructions appear automatically, and installed apps show **"Update available"** within a day.
+This builds a universal (Apple Silicon + Intel) app with only the Command Line Tools, packages `CricketScore.dmg` (with a "How to open" note), uploads it as a **GitHub Release** (requires `gh auth login`), and updates `version.json` on the website. The permanent download link is https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg. The site's **Download for Mac** button and one-time "Open Anyway" instructions appear automatically, and installed apps show **"Update available"** within a day.
 
 Because the app isn't notarized, each user approves it once: open it → **Done** → **System Settings → Privacy & Security → Open Anyway**.
 

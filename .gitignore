@@ -5,3 +5,4 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .DS_Store
+server/public/downloads/

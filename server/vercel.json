@@ -18,5 +18,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/downloads/CricketScore.dmg",
+      "destination": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
+      "permanent": false
+    },
+    {
+      "source": "/download",
+      "destination": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
+      "permanent": false
+    }
   ]
 }

@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Public release: universal build → DMG → publish the DMG + version.json to the website
-# (server/public). Two modes:
+# Public release: universal build → DMG → GitHub Release (CricketScore.dmg) → version.json
+# on the website. Requires the GitHub CLI (`gh auth login`). Two modes:
 #
 #   FREE (default, no Apple Developer account):
 #     SERVER_URL="https://your-site.vercel.app" ./Scripts/release.sh 1.0.0 "What's new"
@@ -29,6 +29,8 @@ DMG="build/$NAME-$VERSION.dmg"
 # Preflight
 [[ "$SERVER_URL" == https://* ]] || { echo "✗ SERVER_URL must be https://"; exit 1; }
 curl -fsS -m 15 -o /dev/null "$SERVER_URL/" || { echo "✗ $SERVER_URL is not responding"; exit 1; }
+command -v gh >/dev/null && gh auth status >/dev/null 2>&1 || { echo "✗ GitHub CLI not logged in (brew install gh && gh auth login)"; exit 1; }
+gh release view "v$VERSION" >/dev/null 2>&1 && { echo "✗ Release v$VERSION already exists"; exit 1; }
 if [[ -n "$SIGN_IDENTITY" ]]; then
     security find-identity -v -p codesigning | grep -q "$SIGN_IDENTITY" || { echo "✗ Certificate not found in keychain: $SIGN_IDENTITY"; exit 1; }
     xcrun --find notarytool >/dev/null 2>&1 || { echo "✗ notarytool not found — install Xcode"; exit 1; }
@@ -71,17 +73,31 @@ if [[ -n "$SIGN_IDENTITY" ]]; then
     spctl --assess --type open --context context:primary-signature --verbose "$DMG"
 fi
 
-echo "▸ Publishing to the website"
-mkdir -p server/public/downloads
-cp "$DMG" "server/public/downloads/$NAME.dmg"
-python3 - "$VERSION" "$NOTES" "$([[ -n "$SIGN_IDENTITY" ]] && echo true || echo false)" <<'PY'
+echo "▸ Publishing to GitHub Releases"
+REPO="${GITHUB_REPO:-$(gh repo view --json nameWithOwner -q .nameWithOwner)}"
+ASSET_DIR="$(mktemp -d)"
+cp "$DMG" "$ASSET_DIR/$NAME.dmg"   # stable asset name → /releases/latest/download/CricketScore.dmg always works
+gh release create "v$VERSION" "$ASSET_DIR/$NAME.dmg#$NAME.dmg (macOS, universal)" \
+    --repo "$REPO" --title "Cricket Score $VERSION" --latest \
+    --notes "${NOTES:-Cricket Score $VERSION}
+
+**Install:** download \`$NAME.dmg\`, drag the app to Applications, open it once$([[ -z "$SIGN_IDENTITY" ]] && echo ', then approve it in **System Settings → Privacy & Security → Open Anyway** (one time)').
+
+Requires macOS 14 or later · Apple Silicon & Intel."
+rm -rf "$ASSET_DIR"
+
+echo "▸ Updating version.json (website download button + in-app update check)"
+python3 - "$VERSION" "$NOTES" "$([[ -n "$SIGN_IDENTITY" ]] && echo true || echo false)" "$REPO" <<'PY'
 import json, sys
-json.dump({"version": sys.argv[1], "url": "/downloads/CricketScore.dmg", "minimumSystemVersion": "14.0", "notes": sys.argv[2],
-           "notarized": sys.argv[3] == "true"},
+version, notes, notarized, repo = sys.argv[1], sys.argv[2], sys.argv[3] == "true", sys.argv[4]
+json.dump({"version": version,
+           "url": f"https://github.com/{repo}/releases/latest/download/CricketScore.dmg",
+           "releaseNotes": f"https://github.com/{repo}/releases/tag/v{version}",
+           "minimumSystemVersion": "14.0", "notes": notes, "notarized": notarized},
           open("server/public/version.json", "w"), indent=2)
 PY
 
 echo
-echo "✓ Release $VERSION ready: $DMG ($([[ -n "$SIGN_IDENTITY" ]] && echo notarized || echo free, ad-hoc signed))."
-echo "  Publish it with:  git add server/public/downloads server/public/version.json && git commit -m \"Release $VERSION\" && git push"
-echo "  Vercel redeploys automatically; installed apps will see the update within a day."
+echo "✓ Released $VERSION: https://github.com/$REPO/releases/tag/v$VERSION"
+echo "  Now publish the version bump:  git add server/public/version.json && git commit -m \"Release $VERSION\" && git push"
+echo "  (Vercel redeploys the site; installed apps see the update within a day.)"

@@ -1,7 +1,8 @@
 {
   "version": "1.0.0",
-  "url": "/downloads/CricketScore.dmg",
+  "url": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
   "minimumSystemVersion": "14.0",
   "notes": "First public release: live ball-by-ball scores in your notch",
-  "notarized": false
+  "notarized": false,
+  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.0.0"
 }
