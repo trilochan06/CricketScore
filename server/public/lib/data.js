@@ -1,9 +1,6 @@
-// Request-driven (serverless) version of the tracker for hosts like Vercel.
-//
-// There's no always-on poller: each request fetches what it needs from ESPN, and the
-// HTTP responses are cached at the CDN edge for a few seconds (see api/). So no matter
-// how many people are watching, ESPN sees roughly one request per match per few seconds.
-// Warm function instances also keep a tiny in-memory cache.
+// Request-driven data layer: fetch what's needed from the source, with a small in-memory
+// cache. Runs in the browser (each visitor reads ESPN's public, CORS-enabled feed directly,
+// like ESPN's own site) and in Node.
 import * as source from './espn.js';
 import { buildScorecard, mergeBallState, compareMatches, COMMENTARY_ITEMS } from './scorecard.js';
 

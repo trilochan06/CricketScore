@@ -152,6 +152,9 @@ private struct DataSettings: View {
                 .onChange(of: settings.dataSource) { _, source in viewModel.setDataSource(source) }
 
                 switch settings.dataSource {
+                case .espn:
+                    Text("Real ball-by-ball scores read directly from ESPNcricinfo's public feed — no account, no API key. Unofficial; not affiliated with ESPN.")
+                        .font(.caption).foregroundStyle(.secondary)
                 case .liveServer:
                     HStack {
                         TextField("Server URL", text: $settings.serverURL, prompt: Text(AppSettings.defaultServerURL.absoluteString))

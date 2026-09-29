@@ -310,3 +310,9 @@ button { font: inherit; color: inherit; }
 .download.is-disabled { background: var(--surface-2); color: var(--text-2); cursor: default; pointer-events: none; }
 .getapp-shots { display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 22px 12px; border-radius: 14px; background: #1a1f2a; overflow: hidden; }
 .getapp-shots img { max-width: 100%; height: auto; }
+.feed li.empty { display: block; text-align: center; }
+
+.first-open { margin-top: 16px; font-size: 13.5px; color: var(--text-2); }
+.first-open summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.first-open ol { padding-left: 20px; line-height: 1.6; margin: 10px 0; }
+.first-open code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 6px; user-select: all; }

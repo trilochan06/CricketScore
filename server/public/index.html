@@ -8,6 +8,10 @@
   <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Cricket Live">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -56,6 +60,16 @@
         <a id="download" class="download is-disabled" href="#get-app" aria-disabled="true">Coming soon</a>
         <span id="download-meta" class="muted small">macOS 14 Sonoma or later · Apple Silicon &amp; Intel</span>
       </div>
+      <details id="first-open" class="first-open" hidden>
+        <summary>First time opening it? (one-time, 20 seconds)</summary>
+        <ol>
+          <li>Open the downloaded file and drag <b>CricketScore</b> into <b>Applications</b>.</li>
+          <li>Open it. macOS says it can't verify the developer — click <b>Done</b>. (It's a free app that isn't paid-signed with Apple.)</li>
+          <li>Go to <b>System Settings → Privacy &amp; Security</b>, scroll down, click <b>Open Anyway</b> next to CricketScore, and confirm.</li>
+        </ol>
+        <p class="muted small">That's it — from then on it opens normally and tells you when updates are available.
+          Prefer Terminal? <code>xattr -dr com.apple.quarantine /Applications/CricketScore.app</code></p>
+      </details>
     </div>
     <div class="getapp-shots" aria-hidden="true">
       <img src="/img/widget-notch.png" alt="" width="390" height="32">

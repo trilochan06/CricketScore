@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Tracker } from './tracker.js';
-import { SOURCE_NAME, SOURCE_URL } from './espn.js';
+import { SOURCE_NAME, SOURCE_URL } from '../public/lib/espn.js';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const PUBLIC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');

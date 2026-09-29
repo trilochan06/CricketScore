@@ -110,12 +110,13 @@ struct LiveCricketScoreProvider: CricketScoreProvider {
 // MARK: - Provider selection
 
 enum DataSource: String, CaseIterable, Identifiable, Sendable {
-    case liveServer, demo, cricketData
+    case espn, liveServer, demo, cricketData
 
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .liveServer: "Cricket Live server (ball-by-ball, no key)"
+        case .espn: "Live — ESPNcricinfo (ball-by-ball, no key)"
+        case .liveServer: "Your own Cricket Live server"
         case .demo: "Demo data (simulated)"
         case .cricketData: "CricketData.org (your own API key)"
         }
@@ -127,6 +128,7 @@ enum ProviderFactory {
     /// Add a new case to `DataSource` and a provider here to plug in another API.
     static func make(for source: DataSource, serverURL: URL? = nil) -> CricketScoreProvider {
         switch source {
+        case .espn: ESPNScoreProvider()
         case .liveServer: ServerScoreProvider(baseURL: serverURL ?? AppSettings.defaultServerURL)
         case .demo: MockCricketScoreProvider()
         case .cricketData: LiveCricketScoreProvider()

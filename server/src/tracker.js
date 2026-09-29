@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
-import * as source from './espn.js';
-import { buildScorecard, mergeBallState, compareMatches } from './scorecard.js';
+import * as source from '../public/lib/espn.js';
+import { buildScorecard, mergeBallState, compareMatches } from '../public/lib/scorecard.js';
 
 const cfg = {
   ballIntervalMs: Number(process.env.BALL_POLL_MS ?? 8000),        // per live match, while someone is watching

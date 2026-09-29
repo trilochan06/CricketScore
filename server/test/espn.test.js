@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeBall, normalizeEvent, oversToBalls, ballsToOvers, decodeEntities } from '../src/espn.js';
+import { normalizeBall, normalizeEvent, oversToBalls, ballsToOvers, decodeEntities } from '../public/lib/espn.js';
 
 // Shapes copied from real ESPN responses (trimmed).
 const ball = (over) => ({

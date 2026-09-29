@@ -1,7 +1,8 @@
 // Cricket Live — browser client.
-// Polls our own API every few seconds (responses are edge-cached, so the upstream
-// source sees ~1 request per match no matter how many people are watching) and
-// detects new deliveries itself to trigger the FOUR / SIX / WICKET animations.
+// Reads ESPNcricinfo's public, CORS-enabled feed directly from the visitor's browser
+// (the same way ESPN's own site does), every few seconds, and detects new deliveries
+// itself to trigger the FOUR / SIX / WICKET animations. The site is fully static.
+import { getMatches, getScorecard } from '/lib/data.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,9 +27,9 @@ function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* private 
 
 // ───────────────────────── Live updates ─────────────────────────
 
-const CARD_INTERVAL_MS = 4000;       // matches the API's edge-cache lifetime
-const HIDDEN_CARD_INTERVAL_MS = 30000;
-const LIST_INTERVAL_MS = 30000;
+const CARD_INTERVAL_MS = 6000;       // polite: one small request per visitor every 6 s
+const HIDDEN_CARD_INTERVAL_MS = 60000;
+const LIST_INTERVAL_MS = 45000;
 
 function connect() {
   state.timers.forEach(clearTimeout);
@@ -42,15 +43,9 @@ function schedule(fn, ms) {
   state.timers.push(setTimeout(fn, ms));
 }
 
-async function getJSON(url) {
-  const res = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
-}
-
 async function pollList() {
   try {
-    state.matches = await getJSON('/api/matches');
+    state.matches = await getMatches();
     ok();
     ensureSelection();
     renderRail();
@@ -63,7 +58,8 @@ async function pollList() {
 async function pollCard() {
   const id = state.selectedId;
   try {
-    const card = await getJSON(`/api/matches/${encodeURIComponent(id)}`);
+    const card = await getScorecard(id);
+    if (!card) throw new Error('match not found');
     if (id !== state.selectedId) return; // user switched matches meanwhile
     ok();
     const firstLoad = !state.card;
@@ -103,6 +99,7 @@ fetch('/version.json', { cache: 'no-cache' })
     a.removeAttribute('aria-disabled');
     a.setAttribute('download', '');
     $('#download-meta').textContent = `Version ${release.version} · macOS ${release.minimumSystemVersion ?? '14'} or later · Apple Silicon & Intel`;
+    if (!release.notarized) $('#first-open').hidden = false;
   })
   .catch(() => {});
 

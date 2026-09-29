@@ -7,7 +7,7 @@
 # Optional environment (used by Scripts/release.sh):
 #   VERSION=1.0.0 BUILD_NUMBER=1          version shown in Finder / used for update checks
 #   SERVER_URL=https://your-app.vercel.app   baked in as the app's default live server
-#   UNIVERSAL=1                           Apple Silicon + Intel (needs full Xcode)
+#   UNIVERSAL=1                           Apple Silicon + Intel in one app
 #   SIGN_IDENTITY="Developer ID Application: Name (TEAMID)"   real signing + hardened runtime
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -20,14 +20,24 @@ MIN_MACOS="14.0"
 SERVER_URL="${SERVER_URL:-}"
 APP="build/$NAME.app"
 
-ARCH_FLAGS=()
 if [[ "${UNIVERSAL:-0}" == "1" ]]; then
-    ARCH_FLAGS=(--arch arm64 --arch x86_64)
+    # Apple Silicon + Intel, built per architecture and merged (works without full Xcode).
+    echo "▸ Compiling (release, universal)…"
+    SLICES=()
+    mkdir -p build/slices
+    for TRIPLE in arm64-apple-macosx$MIN_MACOS x86_64-apple-macosx$MIN_MACOS; do
+        swift build -c release --product "$NAME" --triple "$TRIPLE"
+        # Copy each slice out immediately: both triples can share one output folder.
+        cp "$(swift build -c release --triple "$TRIPLE" --show-bin-path)/$NAME" "build/slices/$TRIPLE"
+        SLICES+=("build/slices/$TRIPLE")
+    done
+    BIN="build/$NAME-universal"
+    lipo -create "${SLICES[@]}" -output "$BIN"
+else
+    echo "▸ Compiling (release)…"
+    swift build -c release --product "$NAME"
+    BIN="$(swift build -c release --show-bin-path)/$NAME"
 fi
-
-echo "▸ Compiling (release${UNIVERSAL:+, universal})…"
-swift build -c release --product "$NAME" "${ARCH_FLAGS[@]}"
-BIN="$(swift build -c release --show-bin-path "${ARCH_FLAGS[@]}")/$NAME"
 
 echo "▸ Assembling $APP"
 rm -rf "$APP"

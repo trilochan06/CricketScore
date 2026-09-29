@@ -103,7 +103,7 @@ final class AppSettings {
             Key.autoShowOnMatchStart: true,
             Key.hideWhenNoLiveMatches: true,
             Key.rememberSelectedMatch: true,
-            Key.dataSource: DataSource.liveServer.rawValue,
+            Key.dataSource: DataSource.espn.rawValue,
             Key.serverURL: Self.defaultServerURL.absoluteString,
         ])
         showOverlay = defaults.bool(forKey: Key.showOverlay)
@@ -122,7 +122,7 @@ final class AppSettings {
         hideWhenNoLiveMatches = defaults.bool(forKey: Key.hideWhenNoLiveMatches)
         rememberSelectedMatch = defaults.bool(forKey: Key.rememberSelectedMatch)
         savedMatchID = defaults.string(forKey: Key.savedMatchID)
-        dataSource = DataSource(rawValue: defaults.string(forKey: Key.dataSource) ?? "") ?? .liveServer
+        dataSource = DataSource(rawValue: defaults.string(forKey: Key.dataSource) ?? "") ?? .espn
         serverURL = defaults.string(forKey: Key.serverURL) ?? Self.defaultServerURL.absoluteString
     }
 }

@@ -73,58 +73,42 @@ With **Simulate** you can preview every state: live, innings break, rain delay, 
 
 ---
 
-## Live ball-by-ball server + website (`server/`)
+## Live ball-by-ball data — no server, no API key
 
-Real scores come from **your own server**, so users never need an API key:
+Scores come from **ESPNcricinfo's public, CORS-enabled JSON feed**, read directly by each user's device — exactly how ESPN's own website works:
 
 ```
-ESPNcricinfo public feed ──(server fetches once per match every few seconds)──▶ server/ ──▶ website + Mac app (every user)
+ESPNcricinfo public feed ──▶ each visitor's browser   (website: server/public, a static site)
+                         └─▶ each user's Mac app      (ESPNScoreProvider.swift)
 ```
 
-- `server/src/espn.js` is the data-source adapter (ESPN's public, keyless JSON). Replace this one file to use a licensed provider (e.g. Sportmonks) later; nothing else changes.
-- `server/public/` is the website: live scoreboard, ball-by-ball feed, and FOUR / SIX / WICKET animations (`/?preview` shows test buttons).
-- **Always-on host** (Railway, Fly, a VPS): `cd server && npm start` runs `src/index.js`, which polls in the background and also offers a Server-Sent Events stream at `/api/stream`.
-- **Serverless host** (Vercel): `server/api/*` + `vercel.json`. Responses are edge-cached for ~4 s, so the upstream sees about one request per match per few seconds however many people are watching.
-- API: `GET /api/matches`, `GET /api/matches/:id`, `GET /api/health`, `GET /version.json`.
-- Tests: `cd server && npm test`.
+- Nothing to host except static files, so there's nothing to rate-limit or block (ESPN refuses requests from cloud servers, but allows browsers and apps).
+- Website data layer: `server/public/lib/` (`espn.js` adapter, `scorecard.js`, `data.js`) — plain ES modules shared by the browser and Node.
+- Mac app: `CricketScore/Services/ESPN/ESPNScoreProvider.swift` (default data source). Polls only while a match is live.
+- Polite polling: every 6 s per open website tab (60 s when the tab is hidden), and at the app's refresh interval.
+- To use a licensed provider later, replace the adapter (`espn.js` / `ESPNScoreProvider.swift`); the UI doesn't change.
+- `server/src/` still contains an optional always-on Node server (SSE push, `/api/*`) for self-hosting where it's allowed: `cd server && npm start`.
 
-Run it locally:
+> The feed is unofficial and ESPN's terms don't grant reuse rights: keep the app free and non-commercial, credit ESPNcricinfo, and switch to a licensed feed before charging money or running ads.
+
+## Shipping to the public (free)
+
+### Website
+Hosted on Vercel from this repo (**Root Directory `server`**, framework **Other**). Every `git push` to `main` redeploys. It's a static site and installable as an app (PWA): Safari → File → Add to Dock, Chrome → Install, or Add to Home Screen on phones.
+
+### Mac app — free, no Apple Developer account
 ```bash
-cd server && PORT=8787 npm start
+SERVER_URL="https://cricketscore-server.vercel.app" ./Scripts/release.sh 1.0.1 "What's new"
+git add server/public/downloads server/public/version.json && git commit -m "Release 1.0.1" && git push
 ```
-then open http://localhost:8787. The Mac app's default data source ("Cricket Live server") points at `http://localhost:8787` unless a public URL was baked in at release time (see below). You can change the URL in **Settings → Data**.
+This builds a universal (Apple Silicon + Intel) app with only the Command Line Tools, packages `CricketScore.dmg` (with a "How to open" note), and publishes it plus `version.json` to the website. The site's **Download for Mac** button and one-time "Open Anyway" instructions appear automatically, and installed apps show **"Update available"** within a day.
 
-> ESPN's feed is unofficial and its terms don't grant reuse rights. It's suitable for a free, non-commercial app that credits ESPNcricinfo. Switch to a licensed feed before charging money or running ads.
+Because the app isn't notarized, each user approves it once: open it → **Done** → **System Settings → Privacy & Security → Open Anyway**.
 
-## Shipping to the public
-
-### 1. Put the server online (Vercel, free Hobby plan)
-1. https://vercel.com/new → import this GitHub repo.
-2. **Root Directory: `server`**, Framework Preset: **Other**, leave build settings empty (`server/vercel.json` covers them) → **Deploy**.
-3. Every `git push` to `main` redeploys automatically. Check `https://<your-app>.vercel.app/api/health`.
-
-Vercel's Hobby plan is for non-commercial use. Upgrade to Pro if you monetize.
-
-### 2. One-time Mac signing setup
-1. Join the **Apple Developer Program** (developer.apple.com/programs, $99/year).
-2. Install **Xcode** from the App Store, then `sudo xcode-select -s /Applications/Xcode.app`.
-3. Xcode → Settings → Accounts → add your Apple ID → **Manage Certificates → + → Developer ID Application**.
-4. Create an app-specific password at appleid.apple.com, then store notarization credentials in your keychain:
-   ```bash
-   xcrun notarytool store-credentials CricketScoreNotary --apple-id you@example.com --team-id ABCDE12345 --password xxxx-xxxx-xxxx-xxxx
-   ```
-   Find your certificate name with `security find-identity -v -p codesigning`.
-
-### 3. Release
-```bash
-SIGN_IDENTITY="Developer ID Application: Your Name (ABCDE12345)" \
-SERVER_URL="https://<your-app>.vercel.app" \
-./Scripts/release.sh 1.0.0 "First public release"
-git add server/public/downloads server/public/version.json && git commit -m "Release 1.0.0" && git push
-```
-`release.sh` builds a universal (Apple Silicon + Intel) app with your server URL baked in, signs it with hardened runtime, packages a DMG, notarizes and staples it, and publishes `downloads/CricketScore.dmg` + `version.json` to the website. The site's **Download for Mac** button turns on automatically, and installed apps show **"Update available"** in the menu bar within a day.
-
-Credentials never leave your Mac: the certificate lives in your login keychain and the notary password in the `CricketScoreNotary` keychain profile. Nothing secret is committed.
+### Optional: signed & notarized (no warning at all)
+Requires the Apple Developer Program ($99/year) and Xcode. Create a *Developer ID Application* certificate, run
+`xcrun notarytool store-credentials CricketScoreNotary --apple-id … --team-id … --password <app-specific>`, then add
+`SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"` to the release command. Credentials stay in your keychain.
 
 ## Using real data: where the API key goes
 

@@ -14,13 +14,12 @@ const PLAYBYPLAY_URL = (leagueId, eventId, page) =>
 export const SOURCE_NAME = 'ESPNcricinfo';
 export const SOURCE_URL = 'https://www.espncricinfo.com/';
 
-const USER_AGENT = 'CricketLive/1.0 (+personal project; polite polling)';
+const IS_BROWSER = typeof window !== 'undefined';
+// Browsers set their own User-Agent (and a custom one would force a CORS preflight).
+const HEADERS = IS_BROWSER ? { accept: 'application/json' } : { accept: 'application/json', 'user-agent': 'CricketLive/1.0 (+personal project; polite polling)' };
 
 async function getJSON(url, { timeoutMs = 12000 } = {}) {
-  const res = await fetch(url, {
-    headers: { 'accept': 'application/json', 'user-agent': USER_AGENT },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const res = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) throw new Error(`ESPN ${res.status} for ${url}`);
   return res.json();
 }
