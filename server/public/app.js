@@ -87,23 +87,7 @@ function fail() {
 
 // Catch up immediately when the tab comes back.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && state.selectedId) // Download button: enabled once a notarized release has been published (Scripts/release.sh).
-fetch('/version.json', { cache: 'no-cache' })
-  .then((r) => (r.ok ? r.json() : null))
-  .then((release) => {
-    if (!release?.url) return;
-    const a = $('#download');
-    a.href = release.url;
-    a.textContent = 'Download for Mac';
-    a.classList.remove('is-disabled');
-    a.removeAttribute('aria-disabled');
-    a.setAttribute('download', '');
-    $('#download-meta').textContent = `Version ${release.version} · macOS ${release.minimumSystemVersion ?? '14'} or later · Apple Silicon & Intel`;
-    if (!release.notarized) $('#first-open').hidden = false;
-  })
-  .catch(() => {});
-
-connect();
+  if (!document.hidden && state.selectedId) connect();
 });
 
 function setConnection(text, kind) {
@@ -428,5 +412,22 @@ if (new URLSearchParams(location.search).has('preview')) {
     if (kind) celebrate(kind, { text: kind === 'wicket' ? 'Preview — bowled him!' : 'Preview delivery', dismissalText: kind === 'wicket' ? 'Preview batter b Preview bowler 42 (31)' : '' });
   });
 }
+
+// Download button: enabled once a release has been published (Scripts/release.sh).
+fetch('/version.json', { cache: 'no-cache' })
+  .then((r) => (r.ok ? r.json() : null))
+  .then((release) => {
+    if (!release?.url) return;
+    const a = $('#download');
+    a.href = release.url;
+    a.textContent = 'Download for Mac';
+    a.classList.remove('is-disabled');
+    a.removeAttribute('aria-disabled');
+    a.setAttribute('download', '');
+    $('#download-meta').textContent = `Version ${release.version} · macOS ${release.minimumSystemVersion ?? '14'} or later · Apple Silicon & Intel`;
+    if (!release.notarized) $('#first-open').hidden = false;
+  })
+  .catch(() => {});
+
 
 connect();
