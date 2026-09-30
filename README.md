@@ -204,3 +204,9 @@ Views use `@ViewState`, a four-line wrapper around `SwiftUI.State`, instead of `
 | CricketData.org parsing | Decoded sample responses (numbers as strings, missing fields, all status types) |
 | No warnings; low CPU/memory | Clean build; ~66 MB RSS, 0% CPU idle |
 | **Please check by hand** | Real mouse clicks on the widget (automated clicks need Accessibility permission), dragging, the ⋮ menu, the Settings window, Launch at Login, and a live API key |
+
+## License
+
+The code is released under the [MIT License](LICENSE).
+
+Cricket scores and commentary shown by the app and website come from ESPNcricinfo and are not covered by this license. This is an unofficial fan project, not affiliated with or endorsed by ESPN.
