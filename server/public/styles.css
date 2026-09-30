@@ -444,3 +444,5 @@ button { font: inherit; color: inherit; }
   box-shadow: var(--shadow); font-size: 13px; animation: slidein .35s ease; }
 .toast-item b { display: block; margin-bottom: 2px; }
 .toast-item.wicket b { color: var(--wicket); } .toast-item.started b { color: var(--live); } .toast-item.result b { color: var(--success); } .toast-item.info b { color: var(--four); }
+.brand span { white-space: nowrap; }
+@media (max-width: 440px) { .brand { font-size: 15px; gap: 7px; } .brand-mark { width: 22px; height: 22px; } .topbar-right { gap: 6px; } .tool { padding: 0 8px; } }
