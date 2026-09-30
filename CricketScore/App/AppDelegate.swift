@@ -95,11 +95,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func terminateIfAlreadyRunning() -> Bool {
         guard let id = Bundle.main.bundleIdentifier else { return false }
-        let others = NSRunningApplication.runningApplications(withBundleIdentifier: id)
-            .filter { $0 != NSRunningApplication.current }
-        guard let existing = others.first else { return false }
+        func others() -> [NSRunningApplication] {
+            NSRunningApplication.runningApplications(withBundleIdentifier: id)
+                .filter { $0 != NSRunningApplication.current && !$0.isTerminated }
+        }
+        // An older copy may still be shutting down (e.g. right after an update): give it a moment.
+        let deadline = Date().addingTimeInterval(2)
+        while !others().isEmpty && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        guard let existing = others().first else { return false }
+        // A copy is genuinely running: bring it forward and leave. (NSApp.terminate can be
+        // ignored this early in launch, which left a silent, idle duplicate behind.)
         existing.activate()
-        NSApp.terminate(nil)
-        return true
+        exit(0)
     }
 }
