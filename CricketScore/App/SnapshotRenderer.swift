@@ -38,6 +38,37 @@ enum SnapshotRenderer {
                 }
             }
         }
+        // Notch alerts, one of each kind, in both styles.
+        viewModel.setMockScenario(.live)
+        try? await Task.sleep(nanoseconds: 1_600_000_000)
+        viewModel.isExpanded = false
+        let alerts: [MatchAlert] = [
+            .init(kind: .wicket, title: "Wicket", detail: "ENG 142/4 (16.2) · ENG vs SA", matchID: "x"),
+            .init(kind: .milestone, title: "50 for Kohli", detail: "50 off 43 balls", matchID: "x"),
+            .init(kind: .lastOver, title: "Last over", detail: "IND need 8 from 6", matchID: "x"),
+            .init(kind: .started, title: "Match started", detail: "PAK vs NZ", matchID: "x"),
+            .init(kind: .result, title: "Result", detail: "IND won by 6 wkts", matchID: "x"),
+        ]
+        for (i, alert) in alerts.enumerated() {
+            viewModel.dismissAlert()
+            viewModel.debugShowAlert(alert)
+            for notch in [true, false] {
+                let layout = OverlayLayout()
+                layout.style = notch ? .notch(width: 179, height: 32) : .floating
+                let view = ScoreOverlayWidget(viewModel: viewModel, layout: layout, actions: actions)
+                    .environment(\.isSnapshot, true)
+                    .environment(\.colorScheme, .dark)
+                    .padding(20)
+                    .background(Color(white: 0.28))
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 2
+                if let image = renderer.cgImage {
+                    let rep = NSBitmapImageRep(cgImage: image)
+                    try? rep.representation(using: .png, properties: [:])?
+                        .write(to: dir.appendingPathComponent("alert-\(i)-\(notch ? "notch" : "floating").png"))
+                }
+            }
+        }
         viewModel.isExpanded = false
         NSApp.terminate(nil)
     }

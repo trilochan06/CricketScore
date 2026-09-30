@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Cricket Live</title>
-  <meta name="description" content="Ball-by-ball live cricket scores with instant FOUR, SIX and WICKET animations.">
+  <title>Cricket Live — ball-by-ball scores</title>
+  <meta name="description" content="Live cricket scores, ball by ball, with FOUR, SIX and WICKET animations. Works on Windows, Mac, iPhone and Android — pop out a floating scoreboard, follow your teams, get alerts.">
   <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -14,17 +14,28 @@
   <meta name="apple-mobile-web-app-title" content="Cricket Live">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
+    <a class="brand" href="/" aria-label="Cricket Live home">
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="var(--live)"/><path d="M8 11c5 3 11 3 16 0M8 21c5-3 11-3 16 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-dasharray="2 2.2" opacity=".85"/></svg>
       <span>Cricket Live</span>
-    </div>
+    </a>
     <div class="topbar-right">
-      <a class="get-app" href="#get-app">Get the Mac app</a>
+      <button id="btn-popout" class="tool" hidden title="Open a small scoreboard that stays on top of your other windows">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="10" y="10" width="6" height="4.5" rx="1.2" fill="currentColor"/></svg>
+        <span>Pop out</span>
+      </button>
+      <button id="btn-alerts" class="tool" title="Get notified about your teams' matches" aria-pressed="false">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5a5 5 0 0 0-5 5v3.2L3.5 13.5h13L15 10.7V7.5a5 5 0 0 0-5-5Zm-2 12.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>Alerts</span>
+      </button>
+      <button id="btn-install" class="tool tool-primary" hidden title="Install Cricket Live as an app">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5v1A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Install app</span>
+      </button>
       <span id="connection" class="pill pill-muted" role="status">Connecting…</span>
       <label class="toggle" title="Show domestic and club matches too">
         <input type="checkbox" id="show-all">
@@ -33,7 +44,7 @@
     </div>
   </header>
 
-  <nav id="rail" class="rail" aria-label="Live matches"></nav>
+  <nav id="rail" class="rail" aria-label="Matches"></nav>
 
   <main id="main" class="layout">
     <section class="col-main">
@@ -51,29 +62,88 @@
     </aside>
   </main>
 
-  <section id="get-app" class="getapp">
+  <section class="everywhere" aria-labelledby="everywhere-title">
+    <h2 id="everywhere-title" class="section-title">Use it anywhere — free, no account</h2>
+    <div class="cards3">
+      <article class="card feature">
+        <div class="feature-icon">💻</div>
+        <h3>Windows &amp; Mac computers</h3>
+        <p>Install Cricket Live as an app from Chrome or Edge, then click <b>Pop out</b> for a small scoreboard that stays on top while you work, study or watch something else.</p>
+        <button class="linkish" data-action="install">How to install →</button>
+      </article>
+      <article class="card feature">
+        <div class="feature-icon">📱</div>
+        <h3>iPhone &amp; Android</h3>
+        <p>Add it to your Home Screen for a full-screen app with live ball-by-ball, and turn on <b>Alerts</b> for wickets, starts and results in your teams' matches.</p>
+        <button class="linkish" data-action="install">Add to Home Screen →</button>
+      </article>
+      <article class="card feature">
+        <div class="feature-icon">⭐</div>
+        <h3>Follow your teams</h3>
+        <p>Tap the ☆ next to a team. Their matches jump to the front and open first, and alerts tell you when they start, lose a wicket or finish.</p>
+        <a class="linkish" href="#main">Pick your teams →</a>
+      </article>
+    </div>
+  </section>
+
+  <section id="get-app" class="getapp" aria-labelledby="mac-title">
+    <div class="getapp-demo" aria-hidden="true">
+      <div class="mac">
+        <div class="mac-screen">
+          <div class="mac-menubar"><span class="mm-apple"></span><span>Finder</span><span>File</span><span>Edit</span><span class="mm-right">🔋 9:41</span></div>
+          <div class="mac-notch"></div>
+          <div class="dw">
+            <div class="dw-bar">
+              <span class="dw-l"><i class="dw-dot"></i><i class="dw-four">4</i><b>IND</b> <span class="dw-score"><span class="s1">184/4</span><span class="s2">188/4</span></span></span>
+              <span class="dw-r"><span class="o1">32.2</span><span class="o2">32.3</span> <small>ov</small></span>
+            </div>
+            <div class="dw-more">
+              <div class="dw-line"><b>India</b> need <b>54</b> from <b>105</b></div>
+              <div class="dw-row"><span>▸ Virat Kohli</span><b>76</b><span>(83)</span></div>
+              <div class="dw-row"><span>&nbsp;&nbsp;Shubman Gill</span><b>43</b><span>(39)</span></div>
+              <div class="dw-balls"><i>1</i><i class="d">•</i><i class="f">4</i><i>1</i><i class="d">•</i><i class="f">4</i></div>
+            </div>
+          </div>
+          <div class="mac-window"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <p class="demo-caption muted small">Live demo of the Mac app: the score lives around the notch, flashes on boundaries and wickets, and expands on click.</p>
+    </div>
     <div class="getapp-text">
-      <h2 class="getapp-title">Live scores in your MacBook's notch</h2>
-      <p class="muted">Cricket Score for Mac keeps the live score at the top of your screen — wrapped around the notch, or as a floating pill.
-        Click it for batters, bowler and every ball. Fours, sixes and wickets flash as they happen. Free, no account, no API key.</p>
+      <span class="eyebrow">Optional · for MacBook</span>
+      <h2 id="mac-title" class="getapp-title">Live scores in your MacBook's notch</h2>
+      <p class="muted">A tiny Mac app that puts the score around the notch — no window, no tab. It follows your favorite teams automatically,
+        flashes alerts for wickets and milestones, and hides itself during full-screen apps, video calls and screen sharing. Free and open source.</p>
       <div class="getapp-actions">
         <a id="download" class="download is-disabled" href="#get-app" aria-disabled="true">Coming soon</a>
         <span id="download-meta" class="muted small">macOS 14 Sonoma or later · Apple Silicon &amp; Intel</span>
       </div>
-      <details id="first-open" class="first-open" hidden>
-        <summary>First time opening it? (one-time, 20 seconds)</summary>
-        <ol>
-          <li>Open the downloaded file and drag <b>CricketScore</b> into <b>Applications</b>.</li>
-          <li>Open it. macOS says it can't verify the developer — click <b>Done</b>. (It's a free app that isn't paid-signed with Apple.)</li>
-          <li>Go to <b>System Settings → Privacy &amp; Security</b>, scroll down, click <b>Open Anyway</b> next to CricketScore, and confirm.</li>
+
+      <div id="first-open" class="walkthrough" hidden>
+        <h3>First launch takes 20 seconds, once</h3>
+        <p class="muted small">It's a free app from an independent developer (not paid-registered with Apple), so macOS asks you to approve it the first time.</p>
+        <ol class="steps">
+          <li>
+            <div class="step-art art-dmg"><span class="app-ico"></span><span class="arrow">→</span><span class="folder-ico"></span></div>
+            <div><b>Install</b><br>Open the download and drag <b>CricketScore</b> into <b>Applications</b>.</div>
+          </li>
+          <li>
+            <div class="step-art art-dialog">
+              <div class="dlg"><span class="dlg-ico">!</span><b>“CricketScore” Not Opened</b><small>Apple could not verify “CricketScore” is free of malware…</small>
+                <div class="dlg-btns"><span>Move to Trash</span><span class="hl">Done</span></div></div>
+            </div>
+            <div><b>Open it</b><br>macOS shows this message. Click <b>Done</b> (not Move to Trash).</div>
+          </li>
+          <li>
+            <div class="step-art art-settings">
+              <div class="set"><small>Privacy &amp; Security</small><span>“CricketScore” was blocked to protect your Mac.</span><span class="hl">Open Anyway</span></div>
+            </div>
+            <div><b>Approve</b><br>Open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. Done — it opens normally from now on.</div>
+          </li>
         </ol>
-        <p class="muted small">That's it — from then on it opens normally and tells you when updates are available.
+        <p class="muted small">Why the warning? Apple charges developers $99/year to skip it. The app's full source code is <a href="https://github.com/trilochan06/CricketScore" target="_blank" rel="noopener">public on GitHub</a>.
           Prefer Terminal? <code>xattr -dr com.apple.quarantine /Applications/CricketScore.app</code></p>
-      </details>
-    </div>
-    <div class="getapp-shots" aria-hidden="true">
-      <img src="/img/widget-notch.png" alt="" width="390" height="32">
-      <img src="/img/widget-pill.png" alt="" width="270" height="34">
+      </div>
     </div>
   </section>
 
@@ -84,6 +154,17 @@
     <a href="https://github.com/trilochan06/CricketScore" target="_blank" rel="noopener">Source on GitHub</a> ·
     <span id="footer-link"></span>
   </footer>
+
+  <dialog id="install-dialog" class="modal">
+    <form method="dialog">
+      <h3 id="install-title">Install the app</h3>
+      <ol id="install-steps"></ol>
+      <p class="muted small">Installed, it opens in its own window (or full screen on phones) with live ball-by-ball — no App Store needed.</p>
+      <button class="download" value="close">Got it</button>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
 
   <div id="preview" class="preview" hidden>
     <span>Preview:</span>

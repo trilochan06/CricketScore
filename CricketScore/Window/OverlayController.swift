@@ -41,6 +41,11 @@ final class OverlayController {
         }
 
         observeContinuously { [weak self] in self?.updateLayout() }
+        // Keep the widget out of screen shares and recordings (Zoom, Meet, QuickTime…).
+        observeContinuously { [weak self] in
+            guard let self else { return }
+            self.panel.sharingType = self.settings.hideFromScreenSharing ? .none : .readOnly
+        }
         observeContinuously { [weak self] in self?.updateVisibility() }
         observeContinuously { [weak self] in self?.updateClickMonitors() }
     }

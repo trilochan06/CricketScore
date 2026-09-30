@@ -8,12 +8,14 @@ struct SettingsView: View {
         TabView {
             GeneralSettings(settings: settings)
                 .tabItem { Label("General", systemImage: "gearshape") }
+            TeamsSettings(settings: settings, viewModel: viewModel)
+                .tabItem { Label("Teams & Alerts", systemImage: "star") }
             DisplaySettings(settings: settings)
                 .tabItem { Label("Display", systemImage: "macwindow") }
             DataSettings(settings: settings, viewModel: viewModel)
                 .tabItem { Label("Data", systemImage: "antenna.radiowaves.left.and.right") }
         }
-        .frame(width: 480, height: 470)
+        .frame(width: 500, height: 520)
     }
 }
 
@@ -119,8 +121,108 @@ private struct DisplaySettings: View {
             } header: {
                 Text("Appearance")
             }
+            Section {
+                Toggle("Hide when a full-screen app is in front", isOn: $settings.hideInFullScreen)
+                Toggle("Hide during video calls (while a camera is on)", isOn: $settings.hideDuringCalls)
+                Toggle("Hide from screen sharing and recordings", isOn: $settings.hideFromScreenSharing)
+                Text("The widget comes back on its own as soon as you leave full screen or end the call.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } header: {
+                Text("Focus")
+            }
         }
         .formStyle(.grouped)
+    }
+}
+
+// MARK: Teams & Alerts
+
+private struct TeamsSettings: View {
+    @Bindable var settings: AppSettings
+    let viewModel: ScoreViewModel
+    @ViewState private var customTeam = ""
+
+    /// Suggestions: well-known teams plus everything currently in the match list.
+    private var suggestions: [String] {
+        let current = viewModel.matches.flatMap { $0.teams.map(\.name) }
+        let all = AppSettings.suggestedTeams + current.filter { !AppSettings.suggestedTeams.contains($0) }.sorted()
+        return all.filter { name in !settings.favoriteTeams.contains { $0.caseInsensitiveCompare(name) == .orderedSame } }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                if settings.favoriteTeams.isEmpty {
+                    Text("No favorite teams yet. Add one and the widget will follow their matches automatically.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                ForEach(settings.favoriteTeams, id: \.self) { team in
+                    HStack {
+                        Image(systemName: "star.fill").foregroundStyle(.yellow)
+                        Text(team)
+                        Spacer()
+                        Button(role: .destructive) { remove(team) } label: { Image(systemName: "minus.circle.fill") }
+                            .buttonStyle(.borderless)
+                            .help("Remove \(team)")
+                    }
+                }
+                HStack {
+                    Menu("Add Team") {
+                        ForEach(suggestions, id: \.self) { name in
+                            Button(name) { add(name) }
+                        }
+                    }
+                    .fixedSize()
+                    TextField("or type a team name", text: $customTeam)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { add(customTeam) }
+                    Button("Add") { add(customTeam) }
+                        .disabled(customTeam.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                Toggle("Include women's, A and Under-19 teams (e.g. India → India Women)", isOn: $settings.includeTeamVariants)
+                    .onChange(of: settings.includeTeamVariants) { _, _ in viewModel.favoritesChanged() }
+                Toggle("Only show my teams' matches", isOn: $settings.onlyFavorites)
+                    .disabled(settings.favoriteTeams.isEmpty)
+                    .onChange(of: settings.onlyFavorites) { _, _ in viewModel.favoritesChanged() }
+            } header: {
+                Text("Favorite teams")
+            } footer: {
+                Text("When a favorite team starts playing, the widget switches to that match and appears on its own.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Notch alerts", isOn: $settings.alertsEnabled)
+                Group {
+                    Toggle("Wickets in my other teams' matches", isOn: $settings.alertWickets)
+                    Toggle("Batter milestones (50, 100…)", isOn: $settings.alertMilestones)
+                    Toggle("Match start, last over and result", isOn: $settings.alertMatchEvents)
+                    Toggle("Show alerts even when the widget is paused or hidden", isOn: $settings.alertsWhilePaused)
+                }
+                .disabled(!settings.alertsEnabled)
+                .padding(.leading, 12)
+            } header: {
+                Text("Alerts")
+            } footer: {
+                Text("Alerts flash briefly in the notch and never while you're in full screen or on a call.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func add(_ name: String) {
+        let team = name.trimmingCharacters(in: .whitespaces)
+        guard !team.isEmpty, !settings.favoriteTeams.contains(where: { $0.caseInsensitiveCompare(team) == .orderedSame }) else { return }
+        settings.favoriteTeams.append(team)
+        customTeam = ""
+        viewModel.favoritesChanged()
+    }
+
+    private func remove(_ team: String) {
+        settings.favoriteTeams.removeAll { $0 == team }
+        if settings.favoriteTeams.isEmpty { settings.onlyFavorites = false }
+        viewModel.favoritesChanged()
     }
 }
 

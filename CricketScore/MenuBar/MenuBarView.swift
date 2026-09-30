@@ -94,7 +94,7 @@ struct MenuBarView: View {
                 .padding(.bottom, 2)
             ForEach(matches) { match in
                 MenuRowContainer(action: { viewModel.select(match.id) }) {
-                    MatchRow(match: match, isSelected: match.id == viewModel.selectedMatchID)
+                    MatchRow(match: match, isSelected: match.id == viewModel.selectedMatchID, isFavorite: settings.isFavorite(match))
                 }
             }
         }

@@ -8,16 +8,34 @@ struct CollapsedScoreView: View {
     var body: some View {
         if layout.isNotch {
             NotchWingsLayout(gap: layout.notchWidth + 14) {
-                leftWing
-                rightWing
+                if let alert = viewModel.alert {
+                    AlertLabel(alert: alert, part: .title).foregroundStyle(.white)
+                    AlertLabel(alert: alert, part: .detail).foregroundStyle(.white)
+                } else {
+                    leftWing
+                    rightWing
+                }
             }
             .frame(height: max(layout.notchHeight, 28))
             .padding(.horizontal, WidgetShape.shoulder + 10)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.alert)
         } else {
-            floating
-                .padding(.leading, 13)
-                .padding(.trailing, 11)
-                .frame(height: 34)
+            Group {
+                if let alert = viewModel.alert {
+                    HStack(spacing: 8) {
+                        AlertLabel(alert: alert, part: .title)
+                        AlertLabel(alert: alert, part: .detail)
+                    }
+                    .fixedSize()
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                } else {
+                    floating.transition(.opacity)
+                }
+            }
+            .padding(.leading, 13)
+            .padding(.trailing, 11)
+            .frame(height: 34)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.alert)
         }
     }
 
@@ -216,5 +234,56 @@ struct ScoreText: View {
         .fixedSize()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(innings.team.name) \(innings.runs) for \(innings.wickets), \(innings.oversText) overs")
+    }
+}
+
+/// One half of a notch alert: the coloured title ("WICKET", "50 for Kohli") or the detail line.
+struct AlertLabel: View {
+    enum Part { case title, detail }
+    let alert: MatchAlert
+    let part: Part
+
+    var body: some View {
+        switch part {
+        case .title:
+            HStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(color)
+                Text(alert.title.uppercased())
+                    .font(.system(size: 10.5, weight: .heavy).width(.expanded))
+                    .foregroundStyle(color)
+                    .lineLimit(1)
+            }
+            .fixedSize()
+            .accessibilityElement(children: .combine)
+        case .detail:
+            Text(alert.detail)
+                .font(Theme.score(12, .semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: 220, alignment: .trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var symbol: String {
+        switch alert.kind {
+        case .wicket: "xmark.circle.fill"
+        case .milestone: "star.fill"
+        case .lastOver: "timer"
+        case .started: "play.circle.fill"
+        case .result: "trophy.fill"
+        }
+    }
+
+    private var color: Color {
+        switch alert.kind {
+        case .wicket: Theme.wicket
+        case .milestone: Color(red: 1, green: 0.8, blue: 0.2)
+        case .lastOver: Theme.pause
+        case .started: Theme.live
+        case .result: Theme.success
+        }
     }
 }

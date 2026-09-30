@@ -3,6 +3,7 @@
 // (the same way ESPN's own site does), every few seconds, and detects new deliveries
 // itself to trigger the FOUR / SIX / WICKET animations. The site is fully static.
 import { getMatches, getScorecard } from '/lib/data.js';
+import { Favorites, Alerts, MiniScore, Install, diffMatches } from '/features.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -20,7 +21,13 @@ const state = {
   prevScores: new Map(),
   fxQueue: [],
   fxBusy: false,
+  userPicked: false,      // the visitor chose a match themselves (don't auto-switch)
 };
+// Opening a link to a specific match (e.g. one a friend shared) counts as choosing it.
+if (new URLSearchParams(location.hash.slice(1)).get('match')) state.userPicked = true;
+
+const IN_PROGRESS = ['live', 'inningsBreak', 'rainDelay'];
+const STATUS_RANK = { live: 0, rainDelay: 1, inningsBreak: 1, upcoming: 2, completed: 3, abandoned: 4 };
 
 function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } }
@@ -45,8 +52,10 @@ function schedule(fn, ms) {
 
 async function pollList() {
   try {
+    const previous = state.matches;
     state.matches = await getMatches();
     ok();
+    if (previous.length) announce(diffMatches(previous, state.matches, { selectedId: state.selectedId }));
     ensureSelection();
     renderRail();
   } catch {
@@ -66,8 +75,19 @@ async function pollCard() {
     // New deliveries since the last poll, oldest first → celebrations.
     const fresh = card.commentary.filter((c) => !state.seenFeed.has(c.id)).reverse();
     render(card);
-    if (!firstLoad && !document.hidden) {
-      for (const c of fresh) if (c.kind) celebrate(c.kind, { text: c.text, dismissalText: c.dismissal });
+    MiniScore.update(card);
+    if (!firstLoad) {
+      for (const c of fresh) {
+        if (!c.kind) continue;
+        if (!document.hidden) celebrate(c.kind, { text: c.text, dismissalText: c.dismissal });
+        MiniScore.flash(c.kind);
+        // Tab in the background: a system notification instead (if alerts are on).
+        if (document.hidden) {
+          const m = card.match;
+          const word = { four: 'FOUR', six: 'SIX', wicket: 'WICKET' }[c.kind];
+          Alerts.notify(`${word} · ${m.teams[0].short} v ${m.teams[1].short}`, c.dismissal || c.text, `ball-${m.id}`, `/#match=${m.id}`);
+        }
+      }
     }
   } catch {
     fail();
@@ -104,19 +124,30 @@ function setConnection(text, kind) {
 }
 
 function visibleMatches() {
-  // Default view: internationals plus anything in progress (live, break or rain).
-  const inProgress = ['live', 'inningsBreak', 'rainDelay'];
-  const featured = state.matches.filter((m) => m.isInternational || inProgress.includes(m.status));
-  return state.showAll || featured.length === 0 ? state.matches : featured;
+  // Default view: your teams, internationals, and anything in progress (live, break or rain).
+  const featured = state.matches.filter((m) => Favorites.follows(m) || m.isInternational || IN_PROGRESS.includes(m.status));
+  const list = state.showAll || featured.length === 0 ? state.matches : featured;
+  return [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9)
+    || Number(Favorites.follows(b)) - Number(Favorites.follows(a)));
+}
+
+/** Live first, then breaks, then soonest upcoming — favorites before everything else. */
+function bestMatch(list) {
+  return list.find((m) => m.status === 'live') ?? list.find((m) => IN_PROGRESS.includes(m.status)) ?? list.find((m) => m.status === 'upcoming') ?? list[0];
 }
 
 function ensureSelection() {
   const list = visibleMatches();
   const current = state.matches.find((m) => m.id === state.selectedId);
+  const favLive = state.matches.filter((m) => Favorites.follows(m) && IN_PROGRESS.includes(m.status));
+  // A favorite team is playing and the visitor didn't pick something else: go there.
+  if (!state.userPicked && favLive.length && !(current && Favorites.follows(current) && IN_PROGRESS.includes(current.status))) {
+    const pick = bestMatch(favLive);
+    if (pick && pick.id !== state.selectedId) return select(pick.id);
+  }
   if (current) return;
-  const pick = list.find((m) => m.status === 'live')
-    ?? list.find((m) => m.status === 'inningsBreak' || m.status === 'rainDelay')
-    ?? list[0];
+  const favs = state.matches.filter((m) => Favorites.follows(m));
+  const pick = (favs.length && bestMatch(favs.filter((m) => m.status !== 'completed' && m.status !== 'abandoned'))) || bestMatch(list);
   if (pick) select(pick.id);
 }
 
@@ -155,7 +186,7 @@ function renderRail() {
       : inn ? `${inn.team} ${score(inn)} (${inn.overs})` : 'Live';
     return `<button class="chip" data-id="${esc(m.id)}" aria-pressed="${m.id === state.selectedId}">
       <i class="dot ${esc(m.status)}"></i>
-      <span class="chip-title">${esc(m.teams[0]?.short)} v ${esc(m.teams[1]?.short)}</span>
+      <span class="chip-title">${esc(m.teams[0]?.short)} v ${esc(m.teams[1]?.short)}${Favorites.follows(m) ? '<span class="star" aria-label="Your team">★</span>' : ''}</span>
       <span class="chip-sub">${esc(sub)}</span>
     </button>`;
   }).join('');
@@ -188,7 +219,7 @@ function renderScoreboard(card, first) {
     const dim = battingTeamId && battingTeamId !== id;
     return `<div class="team ${dim ? 'dim' : ''}">
       <span class="badge" style="--c:${esc(team.color ?? teamColor(team.short))}">${esc(badgeText(team.short))}</span>
-      <span class="team-name">${esc(team.name)}${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}</span>
+      <span class="team-name">${esc(team.name)}${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}<button class="fav" data-team="${esc(team.name)}" aria-pressed="${Favorites.isExactFavorite(team.name) || Favorites.isFavorite(team)}" title="${Favorites.isFavorite(team) ? 'Unfollow' : 'Follow'} ${esc(team.name)}">${Favorites.isFavorite(team) ? '★' : '☆'}</button></span>
       ${last ? `<span class="team-score"><span class="${changed ? 'bump' : ''}">${esc(text)}</span></span>
         <span class="team-overs">${esc(last.overs)} ov</span>` : '<span class="yet">Yet to bat</span>'}
     </div>`;
@@ -394,7 +425,7 @@ function titleFor(m) {
 
 $('#rail').addEventListener('click', (e) => {
   const chip = e.target.closest('.chip');
-  if (chip) select(chip.dataset.id);
+  if (chip) { state.userPicked = true; select(chip.dataset.id); }
 });
 
 const allToggle = $('#show-all');
@@ -409,6 +440,90 @@ window.addEventListener('hashchange', () => {
   const id = new URLSearchParams(location.hash.slice(1)).get('match');
   if (id && id !== state.selectedId) select(id);
 });
+
+// ───────────────────────── Favorites, alerts, pop-out, install ─────────────────────────
+
+$('#scoreboard').addEventListener('click', (e) => {
+  const star = e.target.closest('.fav');
+  if (!star) return;
+  const name = star.dataset.team;
+  // Unfollowing a variant (e.g. "India A" while following "India") removes the base favorite.
+  const base = Favorites.list().find((f) => name.toLowerCase() === f.toLowerCase() || name.toLowerCase().startsWith(f.toLowerCase() + ' '));
+  const nowFollowing = Favorites.toggle(base ?? name);
+  toast(nowFollowing ? 'info' : 'info', nowFollowing ? `Following ${base ?? name}` : `Unfollowed ${base ?? name}`,
+    nowFollowing ? 'Their matches come first' + (Alerts.enabled ? ' and you’ll get alerts.' : ' — turn on Alerts to get notified.') : '');
+  if (state.card) render(state.card);
+  renderRail();
+});
+
+function toast(kind, title, body = '') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${kind}`;
+  el.innerHTML = `<b>${esc(title)}</b>${esc(body)}`;
+  $('#toasts').append(el);
+  setTimeout(() => el.remove(), 5000);
+}
+
+/** Alert events for followed matches: notification if allowed (and in background), toast when visible. */
+function announce(events) {
+  for (const ev of events) {
+    if (!document.hidden) toast(ev.kind, ev.title, ev.body);
+    else Alerts.notify(ev.title, ev.body, `${ev.kind}-${ev.match.id}`, `/#match=${ev.match.id}`);
+  }
+}
+
+const alertsBtn = $('#btn-alerts');
+function syncAlertsButton() {
+  alertsBtn.setAttribute('aria-pressed', String(Alerts.enabled));
+  alertsBtn.querySelector('span').textContent = Alerts.enabled ? 'Alerts on' : 'Alerts';
+  if (!Alerts.supported) alertsBtn.hidden = true;
+}
+alertsBtn.addEventListener('click', async () => {
+  if (Alerts.enabled) {
+    Alerts.disable();
+    toast('info', 'Alerts off');
+  } else {
+    const result = await Alerts.enable();
+    if (result === 'granted') {
+      toast('info', 'Alerts on', Favorites.list().length ? 'Wickets, starts and results for your teams — and 4s, 6s and wickets when this tab is in the background.' : 'Tap ☆ next to a team to follow it.');
+      Alerts.notify('Cricket Live alerts are on', 'You’ll be notified about your teams’ matches.', 'welcome');
+    } else if (result === 'denied') {
+      toast('wicket', 'Notifications are blocked', 'Allow notifications for this site in your browser settings, then try again.');
+    } else if (result === 'unsupported') {
+      toast('wicket', 'Not supported here', 'On iPhone, install the app to your Home Screen first, then turn on alerts.');
+    }
+  }
+  syncAlertsButton();
+});
+syncAlertsButton();
+
+const popBtn = $('#btn-popout');
+if (MiniScore.mode) popBtn.hidden = false;
+popBtn.addEventListener('click', async () => {
+  if (MiniScore.isOpen) { MiniScore.close(); popBtn.setAttribute('aria-pressed', 'false'); return; }
+  if (!state.card) return toast('info', 'Pick a match first');
+  try {
+    const opened = await MiniScore.open(state.card, () => popBtn.setAttribute('aria-pressed', 'false'));
+    popBtn.setAttribute('aria-pressed', String(opened));
+  } catch (err) {
+    toast('wicket', 'Couldn’t pop out the score', 'Your browser blocked the floating window. Try Chrome or Edge.');
+  }
+});
+
+const installBtn = $('#btn-install');
+function syncInstallButton() { installBtn.hidden = Install.isInstalled; }
+Install.init(syncInstallButton);
+syncInstallButton();
+async function startInstall() {
+  const outcome = await Install.prompt();
+  if (outcome !== 'manual') return;
+  const { title, steps } = Install.instructions();
+  $('#install-title').textContent = title;
+  $('#install-steps').innerHTML = steps.map((s) => `<li>${s}</li>`).join('');
+  $('#install-dialog').showModal();
+}
+installBtn.addEventListener('click', startInstall);
+document.querySelectorAll('[data-action="install"]').forEach((b) => b.addEventListener('click', startInstall));
 
 // Refresh countdowns ("Starts in 12 min") once a minute.
 setInterval(() => { if (state.card?.match.status === 'upcoming') render(state.card); renderRail(); }, 60000);

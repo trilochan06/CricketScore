@@ -40,7 +40,23 @@ final class AppSettings {
         static let savedMatchID = "savedMatchID"
         static let dataSource = "dataSource"
         static let serverURL = "serverURL"
+        static let favoriteTeams = "favoriteTeams"
+        static let includeTeamVariants = "includeTeamVariants"
+        static let onlyFavorites = "onlyFavorites"
+        static let alertsEnabled = "alertsEnabled"
+        static let alertWickets = "alertWickets"
+        static let alertMilestones = "alertMilestones"
+        static let alertMatchEvents = "alertMatchEvents"
+        static let alertsWhilePaused = "alertsWhilePaused"
+        static let hideInFullScreen = "hideInFullScreen"
+        static let hideDuringCalls = "hideDuringCalls"
+        static let hideFromScreenSharing = "hideFromScreenSharing"
     }
+
+    /// Suggestions for the favorite-team picker (any team name can also be typed in).
+    static let suggestedTeams = ["India", "Australia", "England", "South Africa", "New Zealand", "Pakistan",
+                                 "Sri Lanka", "Bangladesh", "West Indies", "Afghanistan", "Ireland", "Zimbabwe",
+                                 "Netherlands", "Scotland", "Nepal", "United Arab Emirates", "United States of America"]
 
     /// Where the Cricket Live server runs:
     ///   1. `CRICKET_SERVER_URL` environment variable (development),
@@ -82,6 +98,39 @@ final class AppSettings {
     var dataSource: DataSource { didSet { defaults.set(dataSource.rawValue, forKey: Key.dataSource) } }
     var serverURL: String { didSet { defaults.set(serverURL, forKey: Key.serverURL) } }
 
+    // Favorite teams
+    var favoriteTeams: [String] { didSet { defaults.set(favoriteTeams, forKey: Key.favoriteTeams) } }
+    /// "India" also follows India Women, India A and India Under-19s.
+    var includeTeamVariants: Bool { didSet { defaults.set(includeTeamVariants, forKey: Key.includeTeamVariants) } }
+    /// Only show the widget for favorite teams' matches.
+    var onlyFavorites: Bool { didSet { defaults.set(onlyFavorites, forKey: Key.onlyFavorites) } }
+
+    // Notch alerts
+    var alertsEnabled: Bool { didSet { defaults.set(alertsEnabled, forKey: Key.alertsEnabled) } }
+    var alertWickets: Bool { didSet { defaults.set(alertWickets, forKey: Key.alertWickets) } }
+    var alertMilestones: Bool { didSet { defaults.set(alertMilestones, forKey: Key.alertMilestones) } }
+    var alertMatchEvents: Bool { didSet { defaults.set(alertMatchEvents, forKey: Key.alertMatchEvents) } }
+    /// Briefly show alerts even when the widget is paused or hidden between matches.
+    var alertsWhilePaused: Bool { didSet { defaults.set(alertsWhilePaused, forKey: Key.alertsWhilePaused) } }
+
+    // Focus
+    var hideInFullScreen: Bool { didSet { defaults.set(hideInFullScreen, forKey: Key.hideInFullScreen) } }
+    var hideDuringCalls: Bool { didSet { defaults.set(hideDuringCalls, forKey: Key.hideDuringCalls) } }
+    var hideFromScreenSharing: Bool { didSet { defaults.set(hideFromScreenSharing, forKey: Key.hideFromScreenSharing) } }
+
+    func isFavorite(_ team: Team) -> Bool {
+        favoriteTeams.contains { fav in
+            let f = fav.trimmingCharacters(in: .whitespaces)
+            guard !f.isEmpty else { return false }
+            if team.name.caseInsensitiveCompare(f) == .orderedSame || team.shortName.caseInsensitiveCompare(f) == .orderedSame { return true }
+            return includeTeamVariants && team.name.lowercased().hasPrefix(f.lowercased() + " ")
+        }
+    }
+
+    func isFavorite(_ match: CricketMatch) -> Bool {
+        match.teams.contains(where: isFavorite)
+    }
+
     /// The configured server URL, or the default if the field is empty/invalid.
     var resolvedServerURL: URL {
         let trimmed = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -105,6 +154,17 @@ final class AppSettings {
             Key.rememberSelectedMatch: true,
             Key.dataSource: DataSource.espn.rawValue,
             Key.serverURL: Self.defaultServerURL.absoluteString,
+            Key.favoriteTeams: [String](),
+            Key.includeTeamVariants: true,
+            Key.onlyFavorites: false,
+            Key.alertsEnabled: true,
+            Key.alertWickets: true,
+            Key.alertMilestones: true,
+            Key.alertMatchEvents: true,
+            Key.alertsWhilePaused: true,
+            Key.hideInFullScreen: true,
+            Key.hideDuringCalls: true,
+            Key.hideFromScreenSharing: true,
         ])
         showOverlay = defaults.bool(forKey: Key.showOverlay)
         showMenuBarIcon = defaults.bool(forKey: Key.showMenuBarIcon)
@@ -124,5 +184,16 @@ final class AppSettings {
         savedMatchID = defaults.string(forKey: Key.savedMatchID)
         dataSource = DataSource(rawValue: defaults.string(forKey: Key.dataSource) ?? "") ?? .espn
         serverURL = defaults.string(forKey: Key.serverURL) ?? Self.defaultServerURL.absoluteString
+        favoriteTeams = defaults.stringArray(forKey: Key.favoriteTeams) ?? []
+        includeTeamVariants = defaults.bool(forKey: Key.includeTeamVariants)
+        onlyFavorites = defaults.bool(forKey: Key.onlyFavorites)
+        alertsEnabled = defaults.bool(forKey: Key.alertsEnabled)
+        alertWickets = defaults.bool(forKey: Key.alertWickets)
+        alertMilestones = defaults.bool(forKey: Key.alertMilestones)
+        alertMatchEvents = defaults.bool(forKey: Key.alertMatchEvents)
+        alertsWhilePaused = defaults.bool(forKey: Key.alertsWhilePaused)
+        hideInFullScreen = defaults.bool(forKey: Key.hideInFullScreen)
+        hideDuringCalls = defaults.bool(forKey: Key.hideDuringCalls)
+        hideFromScreenSharing = defaults.bool(forKey: Key.hideFromScreenSharing)
     }
 }

@@ -49,6 +49,7 @@ struct MatchSelectorView: View {
 struct MatchRow: View {
     let match: CricketMatch
     let isSelected: Bool
+    var isFavorite = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -57,6 +58,9 @@ struct MatchRow: View {
                 .opacity(isSelected ? 1 : 0)
                 .frame(width: 10)
             Text(match.shortTitle).font(Theme.label(12.5, isSelected ? .semibold : .regular))
+            if isFavorite {
+                Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow)
+            }
             Spacer(minLength: 8)
             Text(trailing)
                 .font(Theme.score(11.5, .regular))

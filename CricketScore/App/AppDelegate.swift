@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     private var overlay: OverlayController?
+    private var focusMonitor: FocusMonitor?
     private lazy var settingsWindow = SettingsWindowController(settings: settings, viewModel: viewModel)
 
     override init() {
@@ -49,6 +50,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         viewModel.start()
         updates.start()
+
+        let monitor = FocusMonitor(settings: settings) { [weak self] suppressed in
+            self?.viewModel.setFocusSuppressed(suppressed)
+        }
+        monitor.start()
+        focusMonitor = monitor
+        // Re-check immediately when the focus settings change.
+        observeContinuously { [weak self] in
+            guard let self else { return }
+            _ = (self.settings.hideInFullScreen, self.settings.hideDuringCalls)
+            self.focusMonitor?.evaluate()
+        }
 
         #if DEBUG
         if OverlaySelfTest.isEnabled {
