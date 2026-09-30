@@ -312,6 +312,11 @@ actor ESPNScoreProvider: CricketScoreProvider {
         let updated = InningsScore(team: team, runs: latest.runs, wickets: latest.wickets, legalBalls: latest.legalBalls)
         if latest.inningsNumber - 1 < m.innings.count {
             let i = latest.inningsNumber - 1
+            // ESPN's match list lags the ball feed (it can still say "innings break" / "stumps"
+            // after play resumes). A ball beyond the list's score means play is on.
+            if latest.legalBalls > m.innings[i].legalBalls, m.status == .inningsBreak || m.status == .rainDelay {
+                m.status = .live
+            }
             if latest.legalBalls >= m.innings[i].legalBalls { m.innings[i] = updated }
         } else if latest.inningsNumber - 1 == m.innings.count {
             m.innings.append(updated)

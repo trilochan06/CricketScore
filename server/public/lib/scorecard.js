@@ -24,6 +24,10 @@ export function mergeBallState(match, balls, { lastBallAt = 0 } = {}) {
     m.innings.push(inn);
     m.innings.sort((a, b) => a.period - b.period);
   }
+  // ESPN's match list lags the ball feed (it can say "innings break" / "stumps" for a while
+  // after play resumes). A ball beyond the list's score in an unfinished match means play is on.
+  const aheadOfList = s.balls > inn.balls;
+  if (aheadOfList && (m.status === 'inningsBreak' || m.status === 'rainDelay')) m.status = 'live';
   if (s.balls >= inn.balls) {
     inn.runs = s.runs;
     inn.wickets = s.wickets;
@@ -34,6 +38,9 @@ export function mergeBallState(match, balls, { lastBallAt = 0 } = {}) {
   // A ball within the last 90 s means play is on, whatever the (slower) list says.
   if (lastBallAt && m.status !== 'completed' && m.status !== 'abandoned' && Date.now() - lastBallAt < 90000) {
     m.status = 'live';
+  }
+  if (m.status === 'live' && /won toss|elected to|chose to/i.test(m.statusText) && s.runRate != null) {
+    m.statusText = `${latest.teamShort} ${s.runs}/${s.wickets} · run rate ${s.runRate.toFixed(2)}`;
   }
   if (m.status === 'live' && s.remainingRuns != null && s.remainingBalls != null && s.target) {
     const need = s.remainingRuns, left = s.remainingBalls;
