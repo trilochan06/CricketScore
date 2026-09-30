@@ -5,6 +5,7 @@ import * as source from './espn.js';
 import { buildScorecard, mergeBallState, compareMatches, COMMENTARY_ITEMS } from './scorecard.js';
 
 const LIST_TTL_MS = 10000;
+const STALE_GRACE_MS = 30000;
 let listCache = { at: 0, matches: null, pending: null };
 const pageCounts = new Map(); // matchId → last known commentary pageCount
 
@@ -19,7 +20,9 @@ export async function getMatches() {
       })
       .catch((err) => {
         listCache.pending = null;
-        if (listCache.matches) return listCache.matches; // serve stale on upstream hiccups
+        // Ride out a brief hiccup with the last list, but don't hide a real outage:
+        // after STALE_GRACE_MS the error surfaces so the UI can say it's reconnecting.
+        if (listCache.matches && Date.now() - listCache.at < STALE_GRACE_MS) return listCache.matches;
         throw err;
       });
   }

@@ -83,7 +83,14 @@ function ok() {
 function fail() {
   state.failures += 1;
   setConnection(state.failures > 2 ? 'Offline — retrying' : 'Reconnecting…', 'warn');
+  // Nothing loaded yet: say so instead of an endless "Loading…" (keep last scores otherwise).
+  if (!state.card && state.failures >= 2) {
+    $('#scoreboard').innerHTML = '<div class="empty">Can\'t reach live scores right now — retrying automatically.</div>';
+  }
 }
+
+// Back online: refresh immediately instead of waiting for the next scheduled check.
+window.addEventListener('online', () => connect());
 
 // Catch up immediately when the tab comes back.
 document.addEventListener('visibilitychange', () => {
@@ -97,8 +104,9 @@ function setConnection(text, kind) {
 }
 
 function visibleMatches() {
-  // Default view: internationals plus anything that's live right now.
-  const featured = state.matches.filter((m) => m.isInternational || m.status === 'live');
+  // Default view: internationals plus anything in progress (live, break or rain).
+  const inProgress = ['live', 'inningsBreak', 'rainDelay'];
+  const featured = state.matches.filter((m) => m.isInternational || inProgress.includes(m.status));
   return state.showAll || featured.length === 0 ? state.matches : featured;
 }
 
@@ -106,7 +114,9 @@ function ensureSelection() {
   const list = visibleMatches();
   const current = state.matches.find((m) => m.id === state.selectedId);
   if (current) return;
-  const pick = list.find((m) => m.status === 'live') ?? list[0];
+  const pick = list.find((m) => m.status === 'live')
+    ?? list.find((m) => m.status === 'inningsBreak' || m.status === 'rainDelay')
+    ?? list[0];
   if (pick) select(pick.id);
 }
 
