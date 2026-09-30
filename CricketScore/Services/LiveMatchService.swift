@@ -31,7 +31,7 @@ final class LiveMatchService {
         }
     }
 
-    var refreshInterval: TimeInterval = 30
+    var refreshInterval: TimeInterval = 15
     /// When the overlay is hidden, poll less often (the menu refreshes on open).
     var isBackgroundMode = false
     var onEvent: ((Event) -> Void)?

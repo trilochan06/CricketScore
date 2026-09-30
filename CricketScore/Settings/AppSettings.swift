@@ -99,7 +99,7 @@ final class AppSettings {
             Key.position: OverlayPosition.topCenter.rawValue,
             Key.allowDragging: false,
             Key.appearance: AppearanceMode.system.rawValue,
-            Key.refreshInterval: 30,
+            Key.refreshInterval: 15, // ball-by-ball: ~8 s average delay; only while a match is live
             Key.autoShowOnMatchStart: true,
             Key.hideWhenNoLiveMatches: true,
             Key.rememberSelectedMatch: true,
@@ -117,7 +117,7 @@ final class AppSettings {
         }
         appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "") ?? .system
         let interval = defaults.integer(forKey: Key.refreshInterval)
-        refreshInterval = Self.refreshOptions.contains(interval) ? interval : 30
+        refreshInterval = Self.refreshOptions.contains(interval) ? interval : 15
         autoShowOnMatchStart = defaults.bool(forKey: Key.autoShowOnMatchStart)
         hideWhenNoLiveMatches = defaults.bool(forKey: Key.hideWhenNoLiveMatches)
         rememberSelectedMatch = defaults.bool(forKey: Key.rememberSelectedMatch)
