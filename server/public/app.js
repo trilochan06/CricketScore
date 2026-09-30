@@ -219,7 +219,7 @@ function renderScoreboard(card, first) {
     const dim = battingTeamId && battingTeamId !== id;
     return `<div class="team ${dim ? 'dim' : ''}">
       <span class="badge" style="--c:${esc(team.color ?? teamColor(team.short))}">${esc(badgeText(team.short))}</span>
-      <span class="team-name">${esc(team.name)}${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}<button class="fav" data-team="${esc(team.name)}" aria-pressed="${Favorites.isExactFavorite(team.name) || Favorites.isFavorite(team)}" title="${Favorites.isFavorite(team) ? 'Unfollow' : 'Follow'} ${esc(team.name)}">${Favorites.isFavorite(team) ? '★' : '☆'}</button></span>
+      <span class="team-name"><span class="tn">${esc(team.name)}</span>${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}<button class="fav" data-team="${esc(team.name)}" aria-pressed="${Favorites.isExactFavorite(team.name) || Favorites.isFavorite(team)}" title="${Favorites.isFavorite(team) ? 'Unfollow' : 'Follow'} ${esc(team.name)}">${Favorites.isFavorite(team) ? '★' : '☆'}</button></span>
       ${last ? `<span class="team-score"><span class="${changed ? 'bump' : ''}">${esc(text)}</span></span>
         <span class="team-overs">${esc(last.overs)} ov</span>` : '<span class="yet">Yet to bat</span>'}
     </div>`;
