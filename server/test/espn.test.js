@@ -111,3 +111,12 @@ test('decodes HTML entities in ESPN text', () => {
   assert.equal(decodeEntities('A &amp; B &#39;x&#39;'), "A & B 'x'");
   assert.equal(decodeEntities('&unknown; stays'), '&unknown; stays');
 });
+
+test('skips ESPN pre-play placeholder items', () => {
+  const empty = { athlete: {}, team: {}, totalRuns: 0, faced: 0 };
+  const placeholder = { sequence: 108701, period: 1, playType: { id: '2', description: 'no run' }, scoreValue: 0, shortText: '',
+    batsman: empty, otherBatsman: empty, bowler: { athlete: {}, balls: 0 }, otherBowler: { athlete: {} },
+    innings: { number: 1, balls: 0, runs: 0 }, over: { overs: 0, number: 0 }, dismissal: { dismissal: false } };
+  assert.equal(normalizeBall(placeholder), null);
+  assert.notEqual(normalizeBall(ball()), null); // real deliveries still parse
+});

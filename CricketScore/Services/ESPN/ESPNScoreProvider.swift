@@ -225,6 +225,11 @@ actor ESPNScoreProvider: CricketScoreProvider {
 
         init?(_ item: [String: Any]) {
             guard let seq = item.int("sequence") else { return nil }
+            // Before a day's play / new innings ESPN posts an empty placeholder (no text, no batter,
+            // over 0). It isn't a delivery, so it must not become the "latest ball".
+            // (It carries empty player objects — `athlete: {}` — so check for a real player.)
+            let hasText = !((item.string("shortText") ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+            guard hasText || Self.isPlayer(item.dict("batsman")?.dict("athlete")) || Self.isPlayer(item.dict("bowler")?.dict("athlete")) else { return nil }
             sequence = seq
             id = String(seq)
             let inn = item.dict("innings") ?? [:]
@@ -251,14 +256,14 @@ actor ESPNScoreProvider: CricketScoreProvider {
             else { outcome = .runs(value) }
 
             func player(_ d: [String: Any]?) -> PlayerLine? {
-                guard let d, let athlete = d.dict("athlete") else { return nil }
+                guard let d, let athlete = d.dict("athlete"), Self.isPlayer(athlete) else { return nil }
                 return PlayerLine(name: decodeEntities(athlete.string("displayName") ?? athlete.string("name") ?? "Batter"),
                                   runs: d.int("totalRuns") ?? 0, balls: d.int("faced") ?? 0,
                                   fours: d.int("fours") ?? 0, sixes: d.int("sixes") ?? 0)
             }
             batter = player(item.dict("batsman"))
             otherBatter = player(item.dict("otherBatsman"))
-            if let b = item.dict("bowler"), let athlete = b.dict("athlete") {
+            if let b = item.dict("bowler"), let athlete = b.dict("athlete"), Self.isPlayer(athlete) {
                 bowler = BowlerLine(name: decodeEntities(athlete.string("displayName") ?? "Bowler"), balls: b.int("balls") ?? 0,
                                     maidens: b.int("maidens") ?? 0, runs: b.int("conceded") ?? 0, wickets: b.int("wickets") ?? 0)
             } else {
@@ -273,6 +278,11 @@ actor ESPNScoreProvider: CricketScoreProvider {
             remainingRuns = inn.int("remainingRuns")
             remainingBalls = inn.int("remainingBalls")
             ballLimit = inn.int("ballLimit").flatMap { $0 > 0 ? $0 : nil }
+        }
+
+        static func isPlayer(_ athlete: [String: Any]?) -> Bool {
+            guard let athlete else { return false }
+            return athlete.string("id") != nil || athlete.string("displayName") != nil || athlete.string("name") != nil
         }
 
         var isLegal: Bool {

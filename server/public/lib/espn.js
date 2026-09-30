@@ -148,6 +148,10 @@ export async function fetchCommentaryPage(leagueId, eventId, page) {
 
 export function normalizeBall(item) {
   if (!item || item.sequence == null) return null;
+  // Before a day's play / new innings ESPN posts an empty placeholder (no text, no batter, over 0).
+  // It isn't a delivery: skip it so it can't become the "latest ball".
+  // (It carries empty player objects — `athlete: {}` — so check for a real player.)
+  if (!String(item.shortText ?? '').trim() && !isPlayer(item.batsman?.athlete) && !isPlayer(item.bowler?.athlete)) return null;
   const outcome = mapOutcome(item);
   const inn = item.innings ?? {};
   const over = item.over ?? {};
@@ -210,8 +214,10 @@ function labelFor({ type, runs }) {
   }
 }
 
+const isPlayer = (a) => !!(a && (a.id || a.displayName || a.name));
+
 function batterFrom(b, faced) {
-  if (!b?.athlete) return null;
+  if (!isPlayer(b?.athlete)) return null;
   return {
     name: decodeEntities(b.athlete.displayName ?? b.athlete.name ?? 'Batter'),
     runs: toInt(b.totalRuns),
@@ -223,7 +229,7 @@ function batterFrom(b, faced) {
 }
 
 function bowlerFrom(b) {
-  if (!b?.athlete) return null;
+  if (!isPlayer(b?.athlete)) return null;
   return {
     name: decodeEntities(b.athlete.displayName ?? b.athlete.name ?? 'Bowler'),
     balls: toInt(b.balls),
