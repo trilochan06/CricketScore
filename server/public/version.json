@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
+  "version": "1.1.0",
   "url": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
-  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.0.1",
+  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.1.0",
   "minimumSystemVersion": "14.0",
-  "notes": "Fixes found in live testing:\n- No more blank ball / missing batters at the start of a day's play\n- Shows the match as LIVE (with batters and bowler) as soon as play resumes after a break\n- Faster ball-by-ball: refreshes every 15 seconds during live play (was 30)",
+  "notes": "Favorite teams, notch alerts and focus mode:\n- Follow your teams: the widget switches to their matches and appears when they start (India also follows India A, Women, U-19; optional 'only my teams')\n- Notch alerts: wickets in your other teams' matches, 50s and 100s, the last over, match start and result - even while the widget is paused\n- Focus mode: hides during full-screen apps and video calls, and never shows up in screen shares or recordings\n- New Teams & Alerts settings tab",
   "notarized": false
 }
