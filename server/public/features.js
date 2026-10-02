@@ -423,6 +423,7 @@ export const Onboarding = {
 
 /** Pop-out is a laptop/desktop feature: Document PiP, or video PiP on non-touch Safari. */
 export function popOutAvailable() {
-  if ('documentPictureInPicture' in window) return true;
-  return MiniScore.mode === 'video' && !matchMedia('(pointer: coarse)').matches;
+  // Phones/tablets have no mouse or trackpad (touch laptops do, so they keep the pop-out).
+  if (!matchMedia('(any-pointer: fine)').matches) return false;
+  return 'documentPictureInPicture' in window || MiniScore.mode === 'video';
 }
