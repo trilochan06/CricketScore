@@ -4,7 +4,7 @@
 // itself to trigger the FOUR / SIX / WICKET animations. The site is fully static.
 import { getMatches, getScorecard } from '/lib/data.js';
 import { Favorites, Alerts, MiniScore, Install, diffMatches, shareNative, shareLinks, shareText, scoreImage,
-  POPULAR_TEAMS, Onboarding, popOutAvailable } from '/features.js';
+  POPULAR_TEAMS, Onboarding, popOutAvailable, isTouchOnly } from '/features.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -103,7 +103,9 @@ async function pollCard() {
   } catch {
     fail();
   }
-  if (id === state.selectedId) schedule(pollCard, document.hidden ? HIDDEN_CARD_INTERVAL_MS : CARD_INTERVAL_MS);
+  // While the score is pinned / popped out, keep it fresh even when this tab is in the background.
+  const slow = document.hidden && !MiniScore.isOpen;
+  if (id === state.selectedId) schedule(pollCard, slow ? HIDDEN_CARD_INTERVAL_MS : CARD_INTERVAL_MS);
 }
 
 function ok() {
@@ -221,7 +223,6 @@ function render(card) {
   renderBalls(card, first);
   renderCommentary(card, first);
   $('#updated').textContent = `Updated ${new Date(card.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`;
-  $('#footer-link').innerHTML = card.match.link ? `<a href="${esc(card.match.link)}" target="_blank" rel="noopener">Full scorecard ↗</a>` : '';
   document.title = titleFor(card.match);
   if (!Onboarding.done && !state.sheetTimer) state.sheetTimer = setTimeout(showTeamSheet, 1500);
 }
@@ -277,7 +278,6 @@ function renderScoreboard(card, first) {
       <span class="status ${esc(m.status)}">${statusLabel(m.status)}</span>
       <span class="sb-actions">
         <button class="share-btn-inline" data-share title="Share the score">Share</button>
-        ${m.link ? `<a class="sb-link" href="${esc(m.link)}" target="_blank" rel="noopener">ESPNcricinfo ↗</a>` : ''}
       </span>
     </div>
     <h1 class="sb-title">${esc(m.teams.map((t) => t.name).join(' v '))}</h1>
@@ -531,11 +531,18 @@ syncAlertsButton();
 
 const popBtn = $('#btn-popout');
 const workBtn = $('#btn-work');
+const PHONE = isTouchOnly();
+if (PHONE) {
+  popBtn.querySelector('span').textContent = 'Pin score';
+  popBtn.title = 'Pin the live score in a small floating window over your other apps';
+  $('.workbar-text').textContent = 'Pin the live score in a small floating window that stays over your other apps — updates ball by ball.';
+}
 function syncPopOut(open) {
   popBtn.setAttribute('aria-pressed', String(open));
   workBtn.setAttribute('aria-pressed', String(open));
-  workBtn.querySelector('span').textContent = open ? 'Close pop-out' : 'Watch while you work';
+  workBtn.querySelector('span').textContent = open ? (PHONE ? 'Unpin score' : 'Close pop-out') : (PHONE ? 'Pin live score' : 'Watch while you work');
 }
+syncPopOut(false);
 async function togglePopOut() {
   if (MiniScore.isOpen) { MiniScore.close(); syncPopOut(false); return; }
   if (!state.card) return toast('info', 'Pick a match first');
@@ -544,7 +551,9 @@ async function togglePopOut() {
     syncPopOut(opened);
     if (opened) safeSet('poppedOut', '1');
   } catch (err) {
-    toast('wicket', 'Couldn’t pop out the score', 'Your browser blocked the floating window. Try Chrome or Edge.');
+    toast('wicket', PHONE ? 'Couldn’t pin the score' : 'Couldn’t pop out the score',
+      PHONE ? 'Your phone’s browser doesn’t allow floating windows here. On Android, use Chrome and allow “Picture-in-picture” for it in Settings → Apps.'
+            : 'Your browser blocked the floating window. Try Chrome or Edge.');
   }
 }
 if (popOutAvailable()) { popBtn.hidden = false; $('#workbar').hidden = false; }
@@ -586,30 +595,46 @@ $('#scoreboard').addEventListener('click', (e) => {
 
 // ───────────────────────── First-visit team picker ─────────────────────────
 
-function showTeamSheet() {
-  if (Onboarding.done || !$('#team-sheet').hidden) return;
-  const chosen = new Set();
-  $('#team-grid').innerHTML = POPULAR_TEAMS.map(([name, short, color]) => `
-    <button class="team-opt" type="button" data-team="${esc(name)}" aria-pressed="false">
+function showTeamSheet(manage = false) {
+  if (!manage && (Onboarding.done || !$('#team-sheet').hidden)) return;
+  const current = Favorites.list();
+  const chosen = new Set(manage ? current : []);
+  const known = new Set(POPULAR_TEAMS.map(([n]) => n.toLowerCase()));
+  const extra = current.filter((n) => !known.has(n.toLowerCase())).map((n) => [n, n.slice(0, 3).toUpperCase(), teamColor(n)]);
+  $('#sheet-title').textContent = manage ? 'My teams' : 'Who do you support?';
+  $('#sheet-desc').innerHTML = manage
+    ? `Following a team (☆ → ★):<br>• its matches are starred and listed first<br>• its live match opens automatically when you visit<br>• with <b>Alerts</b> on, you're notified when it starts, loses a wicket or finishes<br><span class="muted">“India” also covers India A, India Women and India Under-19s.</span>`
+    : 'We’ll open their matches first, star them in the list, and can alert you when they play.';
+  $('#team-grid').innerHTML = [...POPULAR_TEAMS, ...extra].map(([name, short, color]) => `
+    <button class="team-opt" type="button" data-team="${esc(name)}" aria-pressed="${chosen.has(name) || [...chosen].some((c) => c.toLowerCase() === name.toLowerCase())}">
       <span class="badge" style="--c:${color}">${esc(short)}</span>${esc(name)}
     </button>`).join('');
+  const follow = $('#sheet-follow');
+  const label = () => {
+    if (manage) { follow.disabled = false; follow.textContent = 'Save'; return; }
+    follow.disabled = chosen.size === 0;
+    follow.textContent = chosen.size ? `Follow ${chosen.size === 1 ? [...chosen][0] : chosen.size + ' teams'}` : 'Follow';
+  };
+  label();
   $('#team-grid').onclick = (e) => {
     const opt = e.target.closest('.team-opt');
     if (!opt) return;
     const name = opt.dataset.team;
-    if (chosen.has(name)) chosen.delete(name); else chosen.add(name);
-    opt.setAttribute('aria-pressed', String(chosen.has(name)));
-    $('#sheet-follow').disabled = chosen.size === 0;
-    $('#sheet-follow').textContent = chosen.size ? `Follow ${chosen.size === 1 ? [...chosen][0] : chosen.size + ' teams'}` : 'Follow';
+    const existing = [...chosen].find((c) => c.toLowerCase() === name.toLowerCase());
+    if (existing) chosen.delete(existing); else chosen.add(name);
+    opt.setAttribute('aria-pressed', String(!existing));
+    label();
   };
-  $('#sheet-skip').onclick = () => { Onboarding.finish(); $('#team-sheet').hidden = true; };
-  $('#sheet-follow').onclick = () => {
-    for (const name of chosen) if (!Favorites.isExactFavorite(name)) Favorites.toggle(name);
+  $('#sheet-skip').textContent = manage ? 'Close' : 'Not now';
+  $('#sheet-skip').onclick = () => { if (!manage) Onboarding.finish(); $('#team-sheet').hidden = true; };
+  follow.onclick = () => {
+    Favorites.set([...chosen]);
     Onboarding.finish();
     $('#team-sheet').hidden = true;
     renderRail();
     if (state.card) render(state.card);
-    ensureSelection();   // jumps to their match if one is on (unless a shared link was opened)
+    ensureSelection();
+    if (manage) { toast('info', chosen.size ? 'Saved your teams' : 'Not following any teams'); return; }
     const names = [...chosen].join(' & ');
     const live = state.matches.some((m) => Favorites.follows(m) && IN_PROGRESS.includes(m.status));
     toast('info', `Following ${names}`, live ? 'Their match is on — opened it for you.' : 'Their next match will open first.',
@@ -617,6 +642,8 @@ function showTeamSheet() {
   };
   $('#team-sheet').hidden = false;
 }
+
+$('#btn-teams').addEventListener('click', () => showTeamSheet(true));
 
 const installBtn = $('#btn-install');
 function syncInstallButton() { installBtn.hidden = Install.isInstalled; }

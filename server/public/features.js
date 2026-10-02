@@ -28,6 +28,11 @@ export const Favorites = {
     safeSet('favorites', JSON.stringify(favorites));
     return !exists;
   },
+  /** Replace the whole list (My teams panel). */
+  set(list) {
+    favorites = [...new Set(list.map((s) => s.trim()).filter(Boolean))];
+    safeSet('favorites', JSON.stringify(favorites));
+  },
   /** The base name to store when starring a team ("India A" → still store exactly what was clicked). */
   isExactFavorite(teamName) { return favorites.some((f) => f.toLowerCase() === teamName.toLowerCase()); },
 };
@@ -145,11 +150,17 @@ export const MiniScore = {
   last: null,
 
   get mode() {
-    if ('documentPictureInPicture' in window) return 'document';
-    if (document.pictureInPictureEnabled && 'captureStream' in HTMLCanvasElement.prototype) return 'video';
-    return null;
+    const touchOnly = !matchMedia('(any-pointer: fine)').matches;
+    if ('documentPictureInPicture' in window && !touchOnly) return 'document';
+    const canStream = 'captureStream' in HTMLCanvasElement.prototype;
+    const v = document.createElement('video');
+    const canPip = document.pictureInPictureEnabled || typeof v.webkitSupportsPresentationMode === 'function';
+    return canStream && canPip ? 'video' : null;
   },
-  get isOpen() { return !!(MiniScore.pipWindow && !MiniScore.pipWindow.closed) || !!(document.pictureInPictureElement && MiniScore.video); },
+  get isOpen() {
+    return !!(MiniScore.pipWindow && !MiniScore.pipWindow.closed)
+      || !!(MiniScore.video && (document.pictureInPictureElement === MiniScore.video || MiniScore.video.webkitPresentationMode === 'picture-in-picture'));
+  },
 
   async open(card, onClose) {
     MiniScore.last = card;
@@ -168,13 +179,29 @@ export const MiniScore = {
       const canvas = MiniScore.canvas ?? Object.assign(document.createElement('canvas'), { width: 640, height: 240 });
       MiniScore.canvas = canvas;
       MiniScore.drawCanvas(card);
-      const video = MiniScore.video ?? Object.assign(document.createElement('video'), { muted: true, playsInline: true, autoplay: true });
-      video.setAttribute('playsinline', '');
-      MiniScore.video = video;
+      let video = MiniScore.video;
+      if (!video) {
+        video = Object.assign(document.createElement('video'), { muted: true, playsInline: true, autoplay: true });
+        video.setAttribute('playsinline', '');
+        video.setAttribute('muted', '');
+        // In the page (some phones refuse picture-in-picture for detached videos), but invisible.
+        video.style.cssText = 'position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;bottom:0;left:0';
+        document.body.append(video);
+        MiniScore.video = video;
+      }
       video.srcObject = canvas.captureStream(4);
       await video.play();
-      await video.requestPictureInPicture();
-      video.addEventListener('leavepictureinpicture', () => onClose?.(), { once: true });
+      if (video.requestPictureInPicture && document.pictureInPictureEnabled) {
+        await video.requestPictureInPicture();
+        video.addEventListener('leavepictureinpicture', () => onClose?.(), { once: true });
+      } else if (video.webkitSupportsPresentationMode?.('picture-in-picture')) {
+        video.webkitSetPresentationMode('picture-in-picture');   // iPhone / iPad Safari
+        video.addEventListener('webkitpresentationmodechanged', () => {
+          if (video.webkitPresentationMode !== 'picture-in-picture') onClose?.();
+        });
+      } else {
+        throw new Error('picture-in-picture unavailable');
+      }
       return true;
     }
     return false;
@@ -183,6 +210,7 @@ export const MiniScore = {
   close() {
     if (MiniScore.pipWindow && !MiniScore.pipWindow.closed) MiniScore.pipWindow.close();
     if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+    if (MiniScore.video?.webkitPresentationMode === 'picture-in-picture') MiniScore.video.webkitSetPresentationMode('inline');
     MiniScore.pipWindow = null;
   },
 
@@ -199,7 +227,7 @@ export const MiniScore = {
         <div class="eq">${esc(v.eq)}</div>
         ${v.balls.length ? `<div class="balls">${v.balls.map((b) => `<span class="b ${ballClass(b)}">${esc(b.label)}</span>`).join('')}</div>` : ''}
         ${flash}`;
-    } else if (MiniScore.canvas && document.pictureInPictureElement) {
+    } else if (MiniScore.canvas && MiniScore.isOpen) {
       MiniScore.drawCanvas(card);
     }
   },
@@ -216,7 +244,7 @@ export const MiniScore = {
       f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
       doc.body.className = kind;
       setTimeout(() => { doc.body.className = ''; }, 1600);
-    } else if (MiniScore.canvas && document.pictureInPictureElement) {
+    } else if (MiniScore.canvas && MiniScore.isOpen) {
       MiniScore.drawCanvas(MiniScore.last, { kind, color: colors[kind], word: kind === 'wicket' ? 'WICKET' : words[kind] });
       setTimeout(() => MiniScore.drawCanvas(MiniScore.last), 1800);
     }
@@ -422,8 +450,7 @@ export const Onboarding = {
 // ───────────────────────── Pop-out availability ─────────────────────────
 
 /** Pop-out is a laptop/desktop feature: Document PiP, or video PiP on non-touch Safari. */
-export function popOutAvailable() {
-  // Phones/tablets have no mouse or trackpad (touch laptops do, so they keep the pop-out).
-  if (!matchMedia('(any-pointer: fine)').matches) return false;
-  return 'documentPictureInPicture' in window || MiniScore.mode === 'video';
-}
+export function popOutAvailable() { return MiniScore.mode !== null; }
+
+/** Phones/tablets (no mouse or trackpad) "pin" via a floating video window. */
+export function isTouchOnly() { return !matchMedia('(any-pointer: fine)').matches; }

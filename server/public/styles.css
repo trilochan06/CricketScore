@@ -482,3 +482,5 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .sheet-actions .download[disabled] { opacity: .4; cursor: default; }
 @keyframes sheet-in { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
 .sb-actions { display: flex; align-items: center; gap: 10px; }
+#sheet-desc { line-height: 1.6; }
+@media (max-width: 760px) { .workbar { flex-direction: column; align-items: stretch; text-align: center; } .work-btn { justify-content: center; } }

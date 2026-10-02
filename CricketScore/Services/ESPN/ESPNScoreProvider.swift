@@ -7,7 +7,7 @@ import Foundation
 /// The feed is unofficial — fine for a free, non-commercial app that credits ESPNcricinfo.
 /// Swap this provider for a licensed one before going commercial (see ProviderFactory).
 actor ESPNScoreProvider: CricketScoreProvider {
-    nonisolated var displayName: String { "ESPNcricinfo" }
+    nonisolated var displayName: String { "Live" }
 
     private let scorepanelURL = URL(string: "https://site.api.espn.com/apis/site/v2/sports/cricket/scorepanel")!
     private let session: URLSession

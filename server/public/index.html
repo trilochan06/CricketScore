@@ -38,6 +38,10 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="10" y="10" width="6" height="4.5" rx="1.2" fill="currentColor"/></svg>
         <span>Pop out</span>
       </button>
+      <button id="btn-teams" class="tool" title="Your followed teams">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2.8 2.2 4.5 4.9.7-3.6 3.5.9 4.9L10 14.1l-4.4 2.3.9-4.9L2.9 8l4.9-.7L10 2.8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span>My teams</span>
+      </button>
       <button id="btn-alerts" class="tool" title="Get notified about your teams' matches" aria-pressed="false">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5a5 5 0 0 0-5 5v3.2L3.5 13.5h13L15 10.7V7.5a5 5 0 0 0-5-5Zm-2 12.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         <span>Alerts</span>
@@ -91,7 +95,7 @@
       <article class="card feature">
         <div class="feature-icon">📱</div>
         <h3>iPhone &amp; Android</h3>
-        <p>Add it to your Home Screen for a full-screen app with live ball-by-ball, and turn on <b>Alerts</b> for wickets, starts and results in your teams' matches.</p>
+        <p>Add it to your Home Screen, then tap <b>Pin score</b> to float the live score over your other apps. Turn on <b>Alerts</b> for your teams' wickets, starts and results.</p>
         <button class="linkish" data-action="install">Add to Home Screen →</button>
       </article>
       <article class="card feature">
@@ -165,11 +169,9 @@
   </section>
 
   <footer class="footer">
-    Live data from <a href="https://www.espncricinfo.com/" target="_blank" rel="noopener">ESPNcricinfo</a> ·
-    unofficial fan project, not affiliated with ESPN ·
+    Cricket Live · free, no ads, no account ·
     <a href="/privacy">Privacy</a> ·
-    <a href="https://github.com/trilochan06/CricketScore" target="_blank" rel="noopener">Source on GitHub</a> ·
-    <span id="footer-link"></span>
+    <a href="https://github.com/trilochan06/CricketScore" target="_blank" rel="noopener">Source on GitHub</a>
   </footer>
 
   <dialog id="install-dialog" class="modal">
@@ -198,7 +200,7 @@
   <section id="team-sheet" class="sheet" hidden aria-labelledby="sheet-title">
     <div class="sheet-inner">
       <h3 id="sheet-title">Who do you support?</h3>
-      <p class="muted small">We'll open their matches first, star them in the list, and can alert you when they play.</p>
+      <p id="sheet-desc" class="muted small"></p>
       <div id="team-grid" class="team-grid"></div>
       <div class="sheet-actions">
         <button id="sheet-skip" class="linkish" type="button">Not now</button>

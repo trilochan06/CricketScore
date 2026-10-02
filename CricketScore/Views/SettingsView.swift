@@ -255,7 +255,7 @@ private struct DataSettings: View {
 
                 switch settings.dataSource {
                 case .espn:
-                    Text("Real ball-by-ball scores read directly from ESPNcricinfo's public feed — no account, no API key. Unofficial; not affiliated with ESPN.")
+                    Text("Real ball-by-ball scores, read directly by this Mac — no account, no API key.")
                         .font(.caption).foregroundStyle(.secondary)
                 case .liveServer:
                     HStack {
@@ -264,7 +264,7 @@ private struct DataSettings: View {
                             .onSubmit { viewModel.setDataSource(.liveServer) }
                         Button("Connect") { viewModel.setDataSource(.liveServer) }
                     }
-                    Text("Real ball-by-ball scores from your Cricket Live server — no API key needed. Scores come from ESPNcricinfo's public feed.")
+                    Text("Real ball-by-ball scores from your Cricket Live server — no API key needed.")
                         .font(.caption).foregroundStyle(.secondary)
                 case .demo:
                     Picker("Simulate", selection: Binding(get: { viewModel.mockScenario },

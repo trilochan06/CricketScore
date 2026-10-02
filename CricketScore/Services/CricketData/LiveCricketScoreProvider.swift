@@ -115,7 +115,7 @@ enum DataSource: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .espn: "Live — ESPNcricinfo (ball-by-ball, no key)"
+        case .espn: "Live scores (ball-by-ball, no key)"
         case .liveServer: "Your own Cricket Live server"
         case .demo: "Demo data (simulated)"
         case .cricketData: "CricketData.org (your own API key)"
