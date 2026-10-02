@@ -7,6 +7,16 @@
   <meta name="description" content="Live cricket scores, ball by ball, with FOUR, SIX and WICKET animations. Works on Windows, Mac, iPhone and Android — pop out a floating scoreboard, follow your teams, get alerts.">
   <meta name="theme-color" content="#0b0d12" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Cricket Live">
+  <meta property="og:title" content="Cricket Live — ball-by-ball scores, no clutter">
+  <meta property="og:description" content="Follow your team live, ball by ball. Pop out a floating scoreboard while you work. Free, no ads, no account.">
+  <meta property="og:url" content="https://cricketscore-server.vercel.app/">
+  <meta property="og:image" content="https://cricketscore-server.vercel.app/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Cricket Live: live ball-by-ball cricket scores">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-180.png">
@@ -51,6 +61,13 @@
       <article id="scoreboard" class="card scoreboard" aria-live="off">
         <div class="skeleton">Loading live matches…</div>
       </article>
+      <div id="workbar" class="workbar" hidden>
+        <button id="btn-work" class="work-btn">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4" width="15" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="10" y="10" width="6" height="4.5" rx="1.2" fill="currentColor"/></svg>
+          <span>Watch while you work</span>
+        </button>
+        <span class="workbar-text">Pop the live score into a small window that floats over everything else. <kbd>P</kbd></span>
+      </div>
       <article id="players" class="card players" hidden></article>
       <article id="balls" class="card balls" hidden></article>
     </section>
@@ -163,6 +180,32 @@
       <button class="download" value="close">Got it</button>
     </form>
   </dialog>
+
+  <dialog id="share-dialog" class="modal">
+    <form method="dialog">
+      <h3>Share this</h3>
+      <pre id="share-preview" class="share-preview"></pre>
+      <div class="share-grid">
+        <a id="share-whatsapp" class="share-btn wa" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="share-x" class="share-btn x" target="_blank" rel="noopener">X / Twitter</a>
+        <button id="share-copy" class="share-btn" type="button">Copy text</button>
+        <button id="share-image" class="share-btn" type="button">Download image</button>
+      </div>
+      <button class="download" value="close">Done</button>
+    </form>
+  </dialog>
+
+  <section id="team-sheet" class="sheet" hidden aria-labelledby="sheet-title">
+    <div class="sheet-inner">
+      <h3 id="sheet-title">Who do you support?</h3>
+      <p class="muted small">We'll open their matches first, star them in the list, and can alert you when they play.</p>
+      <div id="team-grid" class="team-grid"></div>
+      <div class="sheet-actions">
+        <button id="sheet-skip" class="linkish" type="button">Not now</button>
+        <button id="sheet-follow" class="download" type="button" disabled>Follow</button>
+      </div>
+    </div>
+  </section>
 
   <div id="toasts" class="toasts" aria-live="polite"></div>
 

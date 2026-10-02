@@ -292,3 +292,137 @@ export const Install = {
     return { title: 'Install the app', steps: ['Click the <b>install icon</b> at the right of the address bar (a screen with an arrow).', 'Or open the browser menu → <b>Cast, save and share → Install page as app</b> (Chrome) / <b>Apps → Install this site as an app</b> (Edge).'] };
   },
 };
+
+// ───────────────────────── Sharing ─────────────────────────
+// The shared *text* carries the live score (link previews are built by WhatsApp's servers,
+// which can't read live data), plus an optional score-card image on phones.
+
+const SITE = 'https://cricketscore-server.vercel.app';
+const MOMENT = { four: { emoji: '🔥', word: 'FOUR!' }, six: { emoji: '💥', word: 'SIX!' }, wicket: { emoji: '☝️', word: 'WICKET!' } };
+
+function scoreLine(i) { return i ? `${i.team} ${i.wickets >= 10 ? i.runs : `${i.runs}/${i.wickets}`} (${i.overs} ov)` : ''; }
+
+export function matchUrl(id) { return `${SITE}/#match=${encodeURIComponent(id)}`; }
+
+export function shareText(card, moment) {
+  const m = card.match;
+  const inn = m.innings.at(-1);
+  const sc = (i) => (i.wickets >= 10 ? `${i.runs}` : `${i.runs}/${i.wickets}`);
+  // Each team's innings in batting order: "AUS-A 358 & 173/4 · IND-A 167 & 75/2 (33 ov)"
+  const order = [...new Set(m.innings.map((i) => i.teamId))];
+  const scores = order.map((id) => {
+    const inns = m.innings.filter((i) => i.teamId === id);
+    const last = inns.at(-1);
+    const live = inn && last === inn && ['live', 'rainDelay', 'inningsBreak'].includes(m.status);
+    return `${last.team} ${inns.map(sc).join(' & ')}${live ? ` (${last.overs} ov)` : ''}`;
+  }).join(' · ');
+  const lines = [];
+  if (moment) lines.push(`${MOMENT[moment.kind].emoji} ${MOMENT[moment.kind].word} ${moment.text ?? ''}`.trim());
+  lines.push(`🏏 ${m.teams[0].name} v ${m.teams[1].name}${m.title ? ` · ${m.title}` : ''}`);
+  if (scores) lines.push(scores);
+  if (card.runsRequired != null && card.ballsRemaining != null) lines.push(`${inn?.team} need ${card.runsRequired} from ${card.ballsRemaining} balls`);
+  else if (m.status === 'completed' || m.status === 'abandoned') lines.push(m.result || m.statusText);
+  else if (m.statusText && !/won toss|chose to|elected to/i.test(m.statusText)) lines.push(m.statusText);
+  lines.push('Live ball by ball:');
+  return lines.join('\n');
+}
+
+/** A 1200×630 score card (PNG) for sharing as an image. */
+export async function scoreImage(card, moment) {
+  const c = document.createElement('canvas');
+  c.width = 1200; c.height = 630;
+  const ctx = c.getContext('2d');
+  const m = card.match;
+  const inn = m.innings.at(-1);
+  const g = ctx.createLinearGradient(0, 0, 1200, 630);
+  g.addColorStop(0, '#141821'); g.addColorStop(1, '#0b0d12');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 1200, 630);
+  const accent = moment ? { four: '#1f7cff', six: '#a855f7', wicket: '#f0352b' }[moment.kind] : '#ff453a';
+  ctx.fillStyle = accent; ctx.fillRect(0, 0, 1200, 10);
+  const font = (w, s) => `${w} ${s}px Inter, -apple-system, "Segoe UI", system-ui, sans-serif`;
+  const mono = (w, s) => `${w} ${s}px "JetBrains Mono", ui-monospace, Menlo, monospace`;
+  // header
+  ctx.fillStyle = '#ff453a'; ctx.beginPath(); ctx.arc(70, 70, 16, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f2f4f8'; ctx.font = font(800, 30); ctx.fillText('Cricket Live', 100, 81);
+  const status = { live: '● LIVE', inningsBreak: 'INNINGS BREAK', rainDelay: 'RAIN DELAY', upcoming: 'UPCOMING', completed: 'RESULT', abandoned: 'NO RESULT' }[m.status] ?? '';
+  ctx.fillStyle = m.status === 'live' ? '#ff453a' : '#a4abb8'; ctx.font = font(800, 26); ctx.textAlign = 'right'; ctx.fillText(status, 1130, 81); ctx.textAlign = 'left';
+  // title
+  ctx.fillStyle = '#f2f4f8'; ctx.font = font(800, 46);
+  ctx.fillText(`${m.teams[0].name} v ${m.teams[1].name}`.slice(0, 44), 70, 170);
+  ctx.fillStyle = '#a4abb8'; ctx.font = font(500, 26);
+  ctx.fillText([m.title, m.series].filter(Boolean).join(' · ').slice(0, 70), 70, 212);
+  // scores
+  let y = 310;
+  const order = m.innings.length ? [...new Set(m.innings.map((i) => i.teamId))] : m.teams.map((t) => t.id);
+  for (const teamId of order.slice(0, 2)) {
+    const team = m.teams.find((t) => t.id === teamId) ?? m.teams[0];
+    const inns = m.innings.filter((i) => i.teamId === teamId);
+    const batting = inn && inn.teamId === teamId && m.status === 'live';
+    ctx.fillStyle = batting ? '#f2f4f8' : '#8b93a1'; ctx.font = font(700, 40); ctx.fillText(team.short, 70, y);
+    ctx.font = mono(700, batting ? 74 : 54);
+    const text = inns.map((i) => (i.wickets >= 10 ? `${i.runs}` : `${i.runs}/${i.wickets}`)).join(' & ') || 'Yet to bat';
+    ctx.fillText(text, 240, y + 6);
+    const last = inns.at(-1);
+    if (last) { const w = ctx.measureText(text).width; ctx.fillStyle = '#8b93a1'; ctx.font = mono(500, 30); ctx.fillText(`${last.overs} ov`, 270 + w, y); }
+    y += 100;
+  }
+  // situation / moment
+  let line = '';
+  if (moment) line = `${MOMENT[moment.kind].word} ${moment.text ?? ''}`;
+  else if (card.runsRequired != null && card.ballsRemaining != null) line = `${inn?.team} need ${card.runsRequired} from ${card.ballsRemaining} balls`;
+  else line = m.result || m.statusText || '';
+  ctx.fillStyle = moment ? accent : '#d6dbe4'; ctx.font = font(moment ? 800 : 600, 34);
+  ctx.fillText(line.slice(0, 60), 70, 535);
+  ctx.fillStyle = '#6b7280'; ctx.font = font(500, 24);
+  ctx.fillText('Live ball by ball · cricketscore-server.vercel.app', 70, 590);
+  return new Promise((resolve) => c.toBlob((b) => resolve(b ? new File([b], 'cricket-score.jpg', { type: 'image/jpeg' }) : null), 'image/jpeg', 0.9));
+}
+
+/** Native share sheet where available (phones, some desktops). Returns 'shared' | 'cancelled' | 'menu'. */
+export async function shareNative(card, moment) {
+  if (!navigator.share) return 'menu';
+  const text = shareText(card, moment);
+  const url = matchUrl(card.match.id);
+  try {
+    const file = await scoreImage(card, moment).catch(() => null);
+    if (file && navigator.canShare?.({ files: [file] }) && matchMedia('(pointer: coarse)').matches) {
+      await navigator.share({ files: [file], text: `${text}\n${url}` });
+    } else {
+      await navigator.share({ text, url });
+    }
+    return 'shared';
+  } catch (err) {
+    return err?.name === 'AbortError' ? 'cancelled' : 'menu';
+  }
+}
+
+export function shareLinks(card, moment) {
+  const text = shareText(card, moment);
+  const url = matchUrl(card.match.id);
+  return {
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`,
+    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+    copy: `${text}\n${url}`,
+  };
+}
+
+// ───────────────────────── Onboarding ─────────────────────────
+
+export const POPULAR_TEAMS = [
+  ['India', 'IND', '#1f6fe0'], ['Australia', 'AUS', '#e6b10b'], ['England', 'ENG', '#2a4aa8'], ['Pakistan', 'PAK', '#0b8a4b'],
+  ['South Africa', 'SA', '#11905e'], ['New Zealand', 'NZ', '#3c3f45'], ['Sri Lanka', 'SL', '#2d47b5'], ['Bangladesh', 'BAN', '#008c5a'],
+  ['West Indies', 'WI', '#8a1530'], ['Afghanistan', 'AFG', '#1a63c9'], ['Ireland', 'IRE', '#169a55'], ['Zimbabwe', 'ZIM', '#c93030'],
+];
+
+export const Onboarding = {
+  get done() { return safeGet('onboarded') === '1' || Favorites.list().length > 0; },
+  finish() { safeSet('onboarded', '1'); },
+};
+
+// ───────────────────────── Pop-out availability ─────────────────────────
+
+/** Pop-out is a laptop/desktop feature: Document PiP, or video PiP on non-touch Safari. */
+export function popOutAvailable() {
+  if ('documentPictureInPicture' in window) return true;
+  return MiniScore.mode === 'video' && !matchMedia('(pointer: coarse)').matches;
+}

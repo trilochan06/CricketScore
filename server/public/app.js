@@ -3,7 +3,8 @@
 // (the same way ESPN's own site does), every few seconds, and detects new deliveries
 // itself to trigger the FOUR / SIX / WICKET animations. The site is fully static.
 import { getMatches, getScorecard } from '/lib/data.js';
-import { Favorites, Alerts, MiniScore, Install, diffMatches } from '/features.js';
+import { Favorites, Alerts, MiniScore, Install, diffMatches, shareNative, shareLinks, shareText, scoreImage,
+  POPULAR_TEAMS, Onboarding, popOutAvailable } from '/features.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,7 +25,11 @@ const state = {
   userPicked: false,      // the visitor chose a match themselves (don't auto-switch)
 };
 // Opening a link to a specific match (e.g. one a friend shared) counts as choosing it.
-if (new URLSearchParams(location.hash.slice(1)).get('match')) state.userPicked = true;
+// A reload of the match this browser was already showing doesn't.
+{
+  const linked = new URLSearchParams(location.hash.slice(1)).get('match');
+  if (linked && linked !== safeGet('match')) state.userPicked = true;
+}
 
 const IN_PROGRESS = ['live', 'inningsBreak', 'rainDelay'];
 const STATUS_RANK = { live: 0, rainDelay: 1, inningsBreak: 1, upcoming: 2, completed: 3, abandoned: 4 };
@@ -79,7 +84,13 @@ async function pollCard() {
     if (!firstLoad) {
       for (const c of fresh) {
         if (!c.kind) continue;
-        if (!document.hidden) celebrate(c.kind, { text: c.text, dismissalText: c.dismissal });
+        if (!document.hidden) {
+          celebrate(c.kind, { text: c.text, dismissalText: c.dismissal });
+          const moment = { kind: c.kind, text: c.text };
+          const word = { four: 'FOUR!', six: 'SIX!', wicket: 'WICKET!' }[c.kind];
+          setTimeout(() => toast(c.kind === 'wicket' ? 'wicket' : 'info', word, c.text,
+            { label: 'Share this moment', onClick: () => doShare(card, moment) }), 2000);
+        }
         MiniScore.flash(c.kind);
         // Tab in the background: a system notification instead (if alerts are on).
         if (document.hidden) {
@@ -212,6 +223,7 @@ function render(card) {
   $('#updated').textContent = `Updated ${new Date(card.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`;
   $('#footer-link').innerHTML = card.match.link ? `<a href="${esc(card.match.link)}" target="_blank" rel="noopener">Full scorecard ↗</a>` : '';
   document.title = titleFor(card.match);
+  if (!Onboarding.done && !state.sheetTimer) state.sheetTimer = setTimeout(showTeamSheet, 1500);
 }
 
 function renderScoreboard(card, first) {
@@ -263,7 +275,10 @@ function renderScoreboard(card, first) {
   $('#scoreboard').innerHTML = `
     <div class="sb-top">
       <span class="status ${esc(m.status)}">${statusLabel(m.status)}</span>
-      ${m.link ? `<a class="sb-link" href="${esc(m.link)}" target="_blank" rel="noopener">ESPNcricinfo ↗</a>` : ''}
+      <span class="sb-actions">
+        <button class="share-btn-inline" data-share title="Share the score">Share</button>
+        ${m.link ? `<a class="sb-link" href="${esc(m.link)}" target="_blank" rel="noopener">ESPNcricinfo ↗</a>` : ''}
+      </span>
     </div>
     <h1 class="sb-title">${esc(m.teams.map((t) => t.name).join(' v '))}</h1>
     <div class="sb-sub">${esc([m.title, m.series, m.venue].filter(Boolean).join(' · '))}</div>
@@ -466,12 +481,19 @@ $('#scoreboard').addEventListener('click', (e) => {
   renderRail();
 });
 
-function toast(kind, title, body = '') {
+function toast(kind, title, body = '', action = null) {
   const el = document.createElement('div');
   el.className = `toast-item ${kind}`;
   el.innerHTML = `<b>${esc(title)}</b>${esc(body)}`;
+  if (action) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => { el.remove(); action.onClick(); });
+    el.append(document.createElement('br'), btn);
+  }
   $('#toasts').append(el);
-  setTimeout(() => el.remove(), 5000);
+  setTimeout(() => el.remove(), action ? 8000 : 5000);
 }
 
 /** Alert events for followed matches: notification if allowed (and in background), toast when visible. */
@@ -508,17 +530,93 @@ alertsBtn.addEventListener('click', async () => {
 syncAlertsButton();
 
 const popBtn = $('#btn-popout');
-if (MiniScore.mode) popBtn.hidden = false;
-popBtn.addEventListener('click', async () => {
-  if (MiniScore.isOpen) { MiniScore.close(); popBtn.setAttribute('aria-pressed', 'false'); return; }
+const workBtn = $('#btn-work');
+function syncPopOut(open) {
+  popBtn.setAttribute('aria-pressed', String(open));
+  workBtn.setAttribute('aria-pressed', String(open));
+  workBtn.querySelector('span').textContent = open ? 'Close pop-out' : 'Watch while you work';
+}
+async function togglePopOut() {
+  if (MiniScore.isOpen) { MiniScore.close(); syncPopOut(false); return; }
   if (!state.card) return toast('info', 'Pick a match first');
   try {
-    const opened = await MiniScore.open(state.card, () => popBtn.setAttribute('aria-pressed', 'false'));
-    popBtn.setAttribute('aria-pressed', String(opened));
+    const opened = await MiniScore.open(state.card, () => syncPopOut(false));
+    syncPopOut(opened);
+    if (opened) safeSet('poppedOut', '1');
   } catch (err) {
     toast('wicket', 'Couldn’t pop out the score', 'Your browser blocked the floating window. Try Chrome or Edge.');
   }
+}
+if (popOutAvailable()) { popBtn.hidden = false; $('#workbar').hidden = false; }
+popBtn.addEventListener('click', togglePopOut);
+workBtn.addEventListener('click', togglePopOut);
+// Keyboard: P toggles the pop-out (ignored while typing).
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() !== 'p' || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (popOutAvailable()) { e.preventDefault(); togglePopOut(); }
 });
+
+// ───────────────────────── Sharing ─────────────────────────
+
+async function doShare(card, moment = null) {
+  if (!card) return;
+  const result = await shareNative(card, moment);
+  if (result !== 'menu') return;
+  const links = shareLinks(card, moment);
+  $('#share-preview').textContent = links.copy;
+  $('#share-whatsapp').href = links.whatsapp;
+  $('#share-x').href = links.x;
+  $('#share-copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(links.copy); toast('info', 'Copied', 'Paste it into any chat.'); }
+    catch { toast('wicket', 'Couldn’t copy', 'Select the text above and copy it.'); }
+  };
+  $('#share-image').onclick = async () => {
+    const file = await scoreImage(card, moment);
+    if (!file) return;
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: 'cricket-score.jpg' });
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  $('#share-dialog').showModal();
+}
+
+$('#scoreboard').addEventListener('click', (e) => {
+  if (e.target.closest('[data-share]')) doShare(state.card);
+});
+
+// ───────────────────────── First-visit team picker ─────────────────────────
+
+function showTeamSheet() {
+  if (Onboarding.done || !$('#team-sheet').hidden) return;
+  const chosen = new Set();
+  $('#team-grid').innerHTML = POPULAR_TEAMS.map(([name, short, color]) => `
+    <button class="team-opt" type="button" data-team="${esc(name)}" aria-pressed="false">
+      <span class="badge" style="--c:${color}">${esc(short)}</span>${esc(name)}
+    </button>`).join('');
+  $('#team-grid').onclick = (e) => {
+    const opt = e.target.closest('.team-opt');
+    if (!opt) return;
+    const name = opt.dataset.team;
+    if (chosen.has(name)) chosen.delete(name); else chosen.add(name);
+    opt.setAttribute('aria-pressed', String(chosen.has(name)));
+    $('#sheet-follow').disabled = chosen.size === 0;
+    $('#sheet-follow').textContent = chosen.size ? `Follow ${chosen.size === 1 ? [...chosen][0] : chosen.size + ' teams'}` : 'Follow';
+  };
+  $('#sheet-skip').onclick = () => { Onboarding.finish(); $('#team-sheet').hidden = true; };
+  $('#sheet-follow').onclick = () => {
+    for (const name of chosen) if (!Favorites.isExactFavorite(name)) Favorites.toggle(name);
+    Onboarding.finish();
+    $('#team-sheet').hidden = true;
+    renderRail();
+    if (state.card) render(state.card);
+    ensureSelection();   // jumps to their match if one is on (unless a shared link was opened)
+    const names = [...chosen].join(' & ');
+    const live = state.matches.some((m) => Favorites.follows(m) && IN_PROGRESS.includes(m.status));
+    toast('info', `Following ${names}`, live ? 'Their match is on — opened it for you.' : 'Their next match will open first.',
+      Alerts.supported && !Alerts.enabled ? { label: 'Alert me when they play', onClick: () => alertsBtn.click() } : null);
+  };
+  $('#team-sheet').hidden = false;
+}
 
 const installBtn = $('#btn-install');
 function syncInstallButton() { installBtn.hidden = Install.isInstalled; }
