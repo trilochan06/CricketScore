@@ -25,7 +25,7 @@ The site already has what the stores and Google read:
 - `manifest.webmanifest` with id, categories, maskable icons, screenshots and a "My teams" shortcut.
 - JSON-LD (WebApplication + FAQPage), a canonical URL, `sitemap.xml` and `robots.txt`.
 
-Lighthouse on the local build scores: mobile 89 / 96 / 100 / 100, desktop 91 / 96 / 100 / 100 (performance / accessibility / best practices / SEO).
+Lighthouse on the live site (performance / accessibility / best practices / SEO): mobile 78 / 96 / 100 / 100, desktop 91 / 96 / 100 / 100. Mobile performance is mostly the wait for live score data on a simulated slow 4G connection; layout shift is near zero.
 
 ## Before you go big: the data source
 
