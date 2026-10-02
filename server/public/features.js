@@ -137,6 +137,20 @@ function miniModel(card) {
   };
 }
 
+/** "J & K lead by 41 runs" → "lead by 41"; chases → "need 58 off 106". */
+function shortSituation(card, v) {
+  if (card.runsRequired != null && card.ballsRemaining != null) return `need ${card.runsRequired} off ${card.ballsRemaining}`;
+  const m = card.match;
+  if (m.status === 'completed' || m.status === 'abandoned') {
+    let r = m.result || m.statusText || 'Result';
+    for (const t of m.teams) r = r.replace(t.name, t.short);
+    return r.replace(' wickets', ' wkts').replace(' wicket', ' wkt');
+  }
+  const t = (m.statusText || '').replace(/^.*?\b(lead|leads|trail|trails|require|requires|need|needs)\b/i, '$1').replace(/ runs?$/i, '');
+  if (t && !/won toss|chose to|elected/i.test(t) && t.length < 40) return t;
+  return v.other;
+}
+
 function ballClass(b) {
   const t = b.outcome?.type;
   return t === 'four' ? 'four' : t === 'six' ? 'six' : t === 'wicket' ? 'wicket' : t === 'dot' ? 'dot'
@@ -176,7 +190,7 @@ export const MiniScore = {
       return true;
     }
     if (MiniScore.mode === 'video') {
-      const canvas = MiniScore.canvas ?? Object.assign(document.createElement('canvas'), { width: 640, height: 240 });
+      const canvas = MiniScore.canvas ?? Object.assign(document.createElement('canvas'), { width: 478, height: 200 }) /* 2.39:1, the widest Android allows */;
       MiniScore.canvas = canvas;
       MiniScore.drawCanvas(card);
       let video = MiniScore.video;
@@ -250,35 +264,65 @@ export const MiniScore = {
     }
   },
 
+  /**
+   * The pinned (video picture-in-picture) card. Android picks the window size, and it can be
+   * pinched much smaller, so this is just two big lines that stay readable when tiny:
+   *   ● J&K 278/9
+   *   64.1 ov · lead by 41     (last ball)
+   */
   drawCanvas(card, flash = null) {
     const c = MiniScore.canvas, ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
     const v = miniModel(card);
-    ctx.fillStyle = '#0b0d12'; ctx.fillRect(0, 0, c.width, c.height);
-    if (flash) { ctx.strokeStyle = flash.color; ctx.lineWidth = 10; ctx.strokeRect(5, 5, c.width - 10, c.height - 10); }
+    ctx.fillStyle = '#0b0d12'; ctx.fillRect(0, 0, W, H);
     if (!v) return;
+    const sans = (w, px) => `${w} ${px}px system-ui, -apple-system, Roboto, sans-serif`;
+    const mono = (w, px) => `${w} ${px}px ui-monospace, Menlo, "Roboto Mono", monospace`;
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = v.status === 'live' ? '#ff453a' : '#a4abb8';
-    ctx.font = '800 20px system-ui, sans-serif'; ctx.fillText(v.statusText, 28, 46);
-    ctx.fillStyle = '#a4abb8'; ctx.textAlign = 'right'; ctx.font = '500 22px system-ui, sans-serif'; ctx.fillText(v.other, c.width - 28, 46); ctx.textAlign = 'left';
-    ctx.fillStyle = '#f2f4f8'; ctx.font = '700 34px system-ui, sans-serif'; ctx.fillText(v.team, 28, 110);
-    const tw = ctx.measureText(v.team).width;
-    ctx.font = '700 58px ui-monospace, Menlo, monospace'; ctx.fillText(v.score, 44 + tw, 112);
-    const sw = ctx.measureText(v.score).width;
-    ctx.fillStyle = '#a4abb8'; ctx.font = '500 26px ui-monospace, Menlo, monospace'; if (v.overs) ctx.fillText(`${v.overs} ov`, 60 + tw + sw, 110);
-    ctx.fillStyle = '#d6dbe4'; ctx.font = '500 24px system-ui, sans-serif'; ctx.fillText(v.eq.slice(0, 44), 28, 158);
-    v.balls.forEach((b, i) => {
-      const x = 46 + i * 50, y = 205, cls = ballClass(b);
-      ctx.beginPath(); ctx.arc(x, y, 20, 0, Math.PI * 2);
-      ctx.fillStyle = { four: '#1f7cff', six: '#a855f7', wicket: '#f0352b', extra: 'rgba(245,158,11,.25)', dot: '#0b0d12' }[cls] ?? 'rgba(255,255,255,.14)';
-      ctx.fill(); if (cls === 'dot') { ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; ctx.stroke(); }
-      ctx.fillStyle = cls === 'extra' ? '#f59e0b' : '#fff'; ctx.font = '700 18px ui-monospace, monospace'; ctx.textAlign = 'center';
-      ctx.fillText(b.label, x, y + 6); ctx.textAlign = 'left';
-    });
+
     if (flash) {
-      ctx.fillStyle = 'rgba(11,13,18,.72)'; ctx.fillRect(10, 10, c.width - 20, c.height - 20);
-      ctx.fillStyle = flash.color; ctx.font = '900 110px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(flash.word, c.width / 2, c.height / 2 + 38); ctx.textAlign = 'left';
+      ctx.fillStyle = flash.color; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.font = sans(900, flash.word.length > 2 ? 92 : 150);
+      ctx.fillText(flash.word, W / 2, H / 2 + (flash.word.length > 2 ? 32 : 52));
+      ctx.textAlign = 'left';
+      return;
     }
+
+    // Line 1: status dot, team, score — shrinks to fit long team codes ("IND-A", "SNGP")
+    const dot = { live: '#ff453a', inningsBreak: '#f59e0b', rainDelay: '#3b9eff', completed: '#22a559' }[v.status] ?? '#8b93a1';
+    ctx.fillStyle = dot; ctx.beginPath(); ctx.arc(30, 70, 11, 0, Math.PI * 2); ctx.fill();
+    const team = v.team.replace(/\s+/g, '');
+    let size = 72;
+    const fits = () => {
+      ctx.font = sans(800, Math.round(size * 0.64)); const tw = ctx.measureText(team).width;
+      ctx.font = mono(800, size); const sw = ctx.measureText(v.score).width;
+      return 54 + tw + size * 0.22 + sw <= W - 20;
+    };
+    while (size > 40 && !fits()) size -= 2;
+    ctx.fillStyle = '#f2f4f8'; ctx.font = sans(800, Math.round(size * 0.64));
+    ctx.fillText(team, 54, 92);
+    const tw = ctx.measureText(team).width;
+    ctx.font = mono(800, size);
+    ctx.fillText(v.score, 54 + tw + size * 0.22, 94);
+
+    // Line 2: short situation … last ball
+    const last = v.balls.at(-1);
+    let reserve = 0;
+    if (last && v.status === 'live') {
+      const cls = ballClass(last);
+      const r = 30, x = W - 22 - r, y = 152;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = { four: '#1f7cff', six: '#a855f7', wicket: '#f0352b', extra: '#3a2a10', dot: '#1b2029' }[cls] ?? '#262c38';
+      ctx.fill();
+      ctx.fillStyle = cls === 'extra' ? '#f59e0b' : '#fff'; ctx.font = mono(800, last.label.length > 2 ? 22 : 30); ctx.textAlign = 'center';
+      ctx.fillText(last.label, x, y + 10); ctx.textAlign = 'left';
+      reserve = r * 2 + 16;
+    }
+    ctx.fillStyle = '#d6dbe4'; ctx.font = sans(600, 34);
+    let line = [v.overs ? `${v.overs} ov` : '', shortSituation(card, v)].filter(Boolean).join(' · ');
+    while (line.length > 3 && ctx.measureText(line).width > W - 44 - reserve) line = line.slice(0, -2).trimEnd() + '…';
+    ctx.fillText(line, 22, 164);
   },
 };
 

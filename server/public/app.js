@@ -60,7 +60,16 @@ async function pollList() {
     const previous = state.matches;
     state.matches = await getMatches();
     ok();
-    if (previous.length) announce(diffMatches(previous, state.matches, { selectedId: state.selectedId }));
+    if (previous.length) {
+      const events = diffMatches(previous, state.matches, { selectedId: state.selectedId });
+      announce(events);
+      // A starred team's match just started: the pinned / popped-out score (or the page) switches to it.
+      const started = events.find((e) => e.kind === 'started');
+      if (started && started.match.id !== state.selectedId && (MiniScore.isOpen || !state.userPicked)) {
+        state.userPicked = false;
+        select(started.match.id);
+      }
+    }
     ensureSelection();
     renderRail();
   } catch {
@@ -224,6 +233,7 @@ function render(card) {
   renderCommentary(card, first);
   $('#updated').textContent = `Updated ${new Date(card.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`;
   document.title = titleFor(card.match);
+  if (typeof syncPopOut === 'function') syncPopOut(MiniScore.isOpen);
   if (!Onboarding.done && !state.sheetTimer) state.sheetTimer = setTimeout(showTeamSheet, 1500);
 }
 
@@ -540,7 +550,11 @@ if (PHONE) {
 function syncPopOut(open) {
   popBtn.setAttribute('aria-pressed', String(open));
   workBtn.setAttribute('aria-pressed', String(open));
-  workBtn.querySelector('span').textContent = open ? (PHONE ? 'Unpin score' : 'Close pop-out') : (PHONE ? 'Pin live score' : 'Watch while you work');
+  const m = state.card?.match;
+  const fav = m && IN_PROGRESS.includes(m.status) ? m.teams.find((t) => Favorites.isFavorite(t)) : null;
+  workBtn.querySelector('span').textContent = open ? (PHONE ? 'Unpin score' : 'Close pop-out')
+    : fav ? `${PHONE ? 'Pin' : 'Pop out'} ${fav.short}’s match`
+    : (PHONE ? 'Pin live score' : 'Watch while you work');
 }
 syncPopOut(false);
 async function togglePopOut() {
@@ -549,7 +563,14 @@ async function togglePopOut() {
   try {
     const opened = await MiniScore.open(state.card, () => syncPopOut(false));
     syncPopOut(opened);
-    if (opened) safeSet('poppedOut', '1');
+    if (opened) {
+      const n = Number(safeGet('pinTips') ?? 0);
+      if (PHONE && n < 3) {
+        safeSet('pinTips', String(n + 1));
+        toast('info', 'Pinned', 'Pinch the floating score to make it smaller, or drag it to the side of the screen to tuck it away. It switches to your starred team’s match when they start playing.');
+      }
+      safeSet('poppedOut', '1');
+    }
   } catch (err) {
     toast('wicket', PHONE ? 'Couldn’t pin the score' : 'Couldn’t pop out the score',
       PHONE ? 'Your phone’s browser doesn’t allow floating windows here. On Android, use Chrome and allow “Picture-in-picture” for it in Settings → Apps.'
