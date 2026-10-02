@@ -14,6 +14,8 @@ actor ESPNScoreProvider: CricketScoreProvider {
     private var leagueByMatch: [String: String] = [:]
     private var pageCounts: [String: Int] = [:]
     private var lastList: (at: Date, matches: [CricketMatch])?
+    /// Which in-progress matches have a ball-by-ball feed (probed once, cached 10 minutes).
+    private var coverage: [String: (has: Bool, at: Date)] = [:]
 
     init() {
         let config = URLSessionConfiguration.ephemeral
@@ -37,8 +39,25 @@ actor ESPNScoreProvider: CricketScoreProvider {
                 matches.append((parsed.match, parsed.international))
             }
         }
+        // Probe coverage for in-progress matches we haven't checked recently (one request each).
+        let toProbe = matches.map(\.match).filter {
+            $0.status.isInProgress && Date().timeIntervalSince(coverage[$0.id]?.at ?? .distantPast) > 600
+        }.prefix(8)
+        if !toProbe.isEmpty {
+            await withTaskGroup(of: (String, Bool?).self) { group in
+                for match in toProbe {
+                    guard let league = leagueByMatch[match.id] else { continue }
+                    group.addTask { [self] in (match.id, try? await self.probe(league: league, matchID: match.id)) }
+                }
+                for await (id, has) in group { if let has { coverage[id] = (has, Date()) } }
+            }
+        }
+        for i in matches.indices { matches[i].match.hasBallByBall = coverage[matches[i].match.id]?.has }
+
         let sorted = matches.sorted { a, b in
             if a.match.status.sortRank != b.match.status.sortRank { return a.match.status.sortRank < b.match.status.sortRank }
+            let ca = a.match.hasBallByBall != false, cb = b.match.hasBallByBall != false
+            if ca != cb { return ca }
             if a.international != b.international { return a.international }
             return (a.match.startDate ?? .distantFuture) < (b.match.startDate ?? .distantFuture)
         }.map(\.match)
@@ -55,9 +74,21 @@ actor ESPNScoreProvider: CricketScoreProvider {
         guard match.status != .upcoming else { return Self.emptyScorecard(match) }
 
         let balls = try await fetchRecentBalls(league: league, matchID: matchID)
-        guard balls.count > 1 || balls.contains(where: { !$0.text.isEmpty }) else { return Self.emptyScorecard(match) }
+        guard balls.count > 1 || balls.contains(where: { !$0.text.isEmpty }) else {
+            coverage[matchID] = (false, Date())
+            match.hasBallByBall = false
+            return Self.emptyScorecard(match)
+        }
+        coverage[matchID] = (true, Date())
+        match.hasBallByBall = true
         match = Self.merge(match, balls: balls)
         return Self.scorecard(match, balls: balls)
+    }
+
+    /// Does this match have a ball-by-ball feed? (First commentary page has real deliveries.)
+    private func probe(league: String, matchID: String) async throws -> Bool {
+        let page = try await commentaryPage(league: league, matchID: matchID, page: nil)
+        return page.balls.contains { !$0.text.isEmpty }
     }
 
     // MARK: Networking

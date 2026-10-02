@@ -33,13 +33,31 @@ final class FocusMonitor {
         evaluate()
     }
 
+    private var pendingSince: Date?
+
+    /// What counts as "focused right now" (replaceable in tests).
+    lazy var isFocusConditionActive: () -> Bool = { [unowned self] in
+        (self.settings.hideInFullScreen && Self.frontmostAppIsFullScreen())
+            || (self.settings.hideDuringCalls && Self.cameraInUse())
+    }
+
     func evaluate() {
-        let fullScreen = settings.hideInFullScreen && Self.frontmostAppIsFullScreen()
-        let call = settings.hideDuringCalls && Self.cameraInUse()
-        let suppressed = fullScreen || call
-        guard suppressed != isSuppressed else { return }
-        isSuppressed = suppressed
-        onChange(suppressed)
+        let suppressed = isFocusConditionActive()
+
+        guard suppressed else {
+            pendingSince = nil
+            if isSuppressed { isSuppressed = false; onChange(false) }   // come back immediately
+            return
+        }
+        guard !isSuppressed else { return }
+        // Only hide if it lasts: app/Space switches can briefly look full-screen, and hiding for
+        // half a second would make the widget flicker.
+        if let since = pendingSince {
+            if Date().timeIntervalSince(since) >= 1.5 { pendingSince = nil; isSuppressed = true; onChange(true) }
+        } else {
+            pendingSince = Date()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in MainActor.assumeIsolated { self?.evaluate() } }
+        }
     }
 
     /// True when the frontmost app (not us) has a window covering the whole main display.

@@ -128,12 +128,17 @@ function visibleMatches() {
   const featured = state.matches.filter((m) => Favorites.follows(m) || m.isInternational || IN_PROGRESS.includes(m.status));
   const list = state.showAll || featured.length === 0 ? state.matches : featured;
   return [...list].sort((a, b) => (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9)
-    || Number(Favorites.follows(b)) - Number(Favorites.follows(a)));
+    || Number(Favorites.follows(b)) - Number(Favorites.follows(a))
+    || Number(b.hasBallByBall !== false) - Number(a.hasBallByBall !== false));
 }
 
 /** Live first, then breaks, then soonest upcoming — favorites before everything else. */
 function bestMatch(list) {
-  return list.find((m) => m.status === 'live') ?? list.find((m) => IN_PROGRESS.includes(m.status)) ?? list.find((m) => m.status === 'upcoming') ?? list[0];
+  const covered = (m) => m.hasBallByBall !== false;
+  return list.find((m) => m.status === 'live' && covered(m))
+    ?? list.find((m) => IN_PROGRESS.includes(m.status) && covered(m))
+    ?? list.find((m) => m.status === 'live') ?? list.find((m) => IN_PROGRESS.includes(m.status))
+    ?? list.find((m) => m.status === 'upcoming') ?? list[0];
 }
 
 function ensureSelection() {
@@ -144,6 +149,11 @@ function ensureSelection() {
   if (!state.userPicked && favLive.length && !(current && Favorites.follows(current) && IN_PROGRESS.includes(current.status))) {
     const pick = bestMatch(favLive);
     if (pick && pick.id !== state.selectedId) return select(pick.id);
+  }
+  // Auto-picked a match with no ball-by-ball feed while a covered one is in progress: move.
+  if (!state.userPicked && current && current.hasBallByBall === false && !Favorites.follows(current)) {
+    const covered = bestMatch(list.filter((m) => IN_PROGRESS.includes(m.status) && m.hasBallByBall !== false));
+    if (covered && IN_PROGRESS.includes(covered.status) && covered.id !== current.id) return select(covered.id);
   }
   if (current) return;
   const favs = state.matches.filter((m) => Favorites.follows(m));

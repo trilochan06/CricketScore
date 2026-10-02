@@ -8,14 +8,35 @@ const LIST_TTL_MS = 10000;
 const STALE_GRACE_MS = 30000;
 let listCache = { at: 0, matches: null, pending: null };
 const pageCounts = new Map(); // matchId → last known commentary pageCount
+// Some live matches (often domestic) have no ball-by-ball feed and only occasional total
+// updates. Probe each in-progress match once (cached) so covered matches can be preferred.
+const COVERAGE_TTL_MS = 10 * 60000;
+const coverage = new Map();   // matchId → { has: boolean, at: ms }
+const IN_PROGRESS = new Set(['live', 'inningsBreak', 'rainDelay']);
+
+async function probeCoverage(match) {
+  try {
+    const page = await source.fetchCommentaryPage(match.leagueId, match.id);
+    coverage.set(match.id, { has: page.balls.some((b) => b.text), at: Date.now() });
+  } catch { /* unknown: treat as covered */ }
+}
+
+function withCoverage(list) {
+  return list.map((m) => {
+    const c = coverage.get(m.id);
+    return c ? { ...m, hasBallByBall: c.has } : m;
+  });
+}
 
 export async function getMatches() {
   const now = Date.now();
   if (listCache.matches && now - listCache.at < LIST_TTL_MS) return listCache.matches;
   if (!listCache.pending) {
     listCache.pending = source.fetchMatches()
-      .then((list) => {
-        listCache = { at: Date.now(), matches: list.sort(compareMatches), pending: null };
+      .then(async (list) => {
+        const stale = list.filter((m) => IN_PROGRESS.has(m.status) && !(Date.now() - (coverage.get(m.id)?.at ?? 0) < COVERAGE_TTL_MS));
+        await Promise.all(stale.slice(0, 8).map(probeCoverage));
+        listCache = { at: Date.now(), matches: withCoverage(list).sort(compareMatches), pending: null };
         return listCache.matches;
       })
       .catch((err) => {
@@ -37,6 +58,7 @@ export async function getScorecard(id) {
 
   const balls = await fetchRecentBalls(match);
   if (balls.length <= 1 && !balls.some((b) => b.text)) {
+    coverage.set(match.id, { has: false, at: Date.now() });
     return buildScorecard({ ...match, hasBallByBall: false }, []);
   }
   const merged = mergeBallState(match, balls);

@@ -94,6 +94,9 @@ struct CricketMatch: Identifiable, Hashable, Sendable {
     var target: Int?
     var result: String?
     var toss: String?
+    /// `false` when the provider knows this match has no ball-by-ball feed (only occasional
+    /// total updates); `nil` when unknown.
+    var hasBallByBall: Bool? = nil
 
     var teamA: Team { teams.first ?? .unknown }
     var teamB: Team { teams.count > 1 ? teams[1] : .unknown }

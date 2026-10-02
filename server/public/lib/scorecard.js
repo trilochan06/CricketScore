@@ -122,6 +122,8 @@ const STATUS_RANK = { live: 0, rainDelay: 1, inningsBreak: 1, upcoming: 2, compl
 export function compareMatches(a, b) {
   const r = (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9);
   if (r) return r;
+  // Matches with a ball-by-ball feed before ones that only get occasional total updates.
+  if ((a.hasBallByBall !== false) !== (b.hasBallByBall !== false)) return a.hasBallByBall !== false ? -1 : 1;
   if (a.isInternational !== b.isInternational) return a.isInternational ? -1 : 1;
   return (a.startDate ?? '').localeCompare(b.startDate ?? '');
 }

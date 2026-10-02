@@ -243,6 +243,13 @@ final class ScoreViewModel {
             chosen = fav.id
         }
 
+        // Auto-picked a match with no ball-by-ball feed while a covered one is in progress: move.
+        if !userPickedMatch, let id = chosen, let match = list.first(where: { $0.id == id }),
+           match.hasBallByBall == false, match.status.isInProgress, !settings.isFavorite(match),
+           let covered = list.first(where: { $0.status.isInProgress && $0.hasBallByBall != false }) {
+            chosen = covered.id
+        }
+
         if chosen == nil, settings.rememberSelectedMatch, let saved = settings.savedMatchID, ids.contains(saved) {
             chosen = saved
         }
@@ -257,6 +264,9 @@ final class ScoreViewModel {
 
     /// Live first, then breaks/rain, then the soonest upcoming match.
     private static func bestMatch(in list: [CricketMatch]) -> String? {
+        let covered = list.filter { $0.hasBallByBall != false }
+        if let live = covered.first(where: { $0.status == .live }) { return live.id }
+        if let inProgress = covered.first(where: { $0.status.isInProgress }) { return inProgress.id }
         if let live = list.first(where: { $0.status == .live }) { return live.id }
         if let inProgress = list.first(where: { $0.status.isInProgress }) { return inProgress.id }
         let upcoming = list.filter { $0.status == .upcoming }

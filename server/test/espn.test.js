@@ -120,3 +120,13 @@ test('skips ESPN pre-play placeholder items', () => {
   assert.equal(normalizeBall(placeholder), null);
   assert.notEqual(normalizeBall(ball()), null); // real deliveries still parse
 });
+
+test('matches with ball-by-ball coverage sort before totals-only matches', async () => {
+  const { compareMatches } = await import('../public/lib/scorecard.js');
+  const mk = (id, status, hasBallByBall, isInternational = false) => ({ id, status, hasBallByBall, isInternational, startDate: '2026-09-30T00:00:00Z' });
+  const sorted = [mk('nobbb', 'live', false), mk('bbb', 'live', true), mk('upcoming', 'upcoming', true), mk('unknown', 'live', undefined)]
+    .sort(compareMatches).map((m) => m.id);
+  assert.deepEqual(sorted.slice(0, 2).sort(), ['bbb', 'unknown']);
+  assert.equal(sorted[2], 'nobbb');
+  assert.equal(sorted[3], 'upcoming');
+});
