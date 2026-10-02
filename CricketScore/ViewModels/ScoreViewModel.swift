@@ -128,6 +128,17 @@ final class ScoreViewModel {
         return false
     }
 
+    /// Why the widget is currently shown or hidden (logged, for troubleshooting).
+    var overlayVisibilityReason: String {
+        if !settings.showOverlay { return "hidden: overlay turned off in Settings" }
+        if focusSuppressed { return "hidden: focus mode (full-screen app or camera in use)" }
+        if alert != nil, settings.alertsWhilePaused { return "shown: alert" }
+        if isOverlayPaused { return "hidden: paused from the menu" }
+        if !settings.hideWhenNoLiveMatches || !hasLoaded || isManuallyShown { return "shown" }
+        if hasInProgressMatch { return "shown: match in progress" }
+        return shouldShowOverlay ? "shown: match starting soon / just finished" : "hidden: no live matches"
+    }
+
     // MARK: Intents
 
     func select(_ matchID: String) {

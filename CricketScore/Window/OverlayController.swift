@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import Observation
 import SwiftUI
 
@@ -129,9 +130,17 @@ final class OverlayController {
 
     // MARK: Visibility
 
+    private let log = Logger(subsystem: "com.cricketscore.CricketScore", category: "overlay")
+    private var lastReason = ""
+
     private func updateVisibility() {
         let show = viewModel.shouldShowOverlay
         viewModel.setBackgroundMode(!show)
+        let reason = viewModel.overlayVisibilityReason
+        if reason != lastReason {
+            lastReason = reason
+            log.notice("widget \(reason, privacy: .public)")
+        }
 
         if show {
             if !panel.isVisible {

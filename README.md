@@ -8,7 +8,10 @@ Collapsed, no notch / Below Notch      ( ● LIVE  IND 184/4 32.2 · AUS 241/8  
 Click the widget  →  score, need X from Y, CRR/RRR, batters, bowler, recent balls, match info
 ```
 
-It runs straight away on simulated demo matches, so you don't need an API key to try it.
+It shows real ball-by-ball scores straight away from ESPNcricinfo's public feed. There's no account, no API key and no server to run. Simulated demo matches are also built in, for trying every state of the widget.
+
+- **Website (any device):** https://cricketscore-server.vercel.app
+- **Mac app download:** https://github.com/trilochan06/CricketScore/releases/latest (free; approve it once on first launch)
 
 ---
 
@@ -66,12 +69,29 @@ This uses `SMAppService.mainApp`. You can turn it off in the same place or in **
 
 ### Settings
 - **General:** show overlay, launch at login, show menu bar icon, auto-show when a match starts, hide when nothing is live, remember selected match.
+- **Teams & Alerts:**
+  - **Favorite teams.** The widget switches to their match and appears when they start playing. "India" also follows India A, India Women and India Under-19s, and there's an option to only show your teams' matches. Favorites are starred in the menu.
+  - **Notch alerts.** A 5-second banner in the notch for wickets in your other teams' matches, batter milestones (50, 100…), the last over, match start and result. Alerts can pop up even while the widget is paused or hidden between matches.
 - **Display:** position (Top Center / Top Right / Below Notch), optional drag-to-move with a remembered position, appearance (System/Light/Dark).
-- **Data:** update frequency (15/30/60 s), data source (Demo / CricketData.org), API key, and a **Simulate** picker (demo mode only).
+  - **Focus.** Hides while a full-screen app is in front or a camera is on (video calls), and keeps the widget out of screen sharing and recordings.
+- **Data:** update frequency (15/30/60 s, default 15), data source (ESPNcricinfo live by default / your own server / Demo / CricketData.org), and a **Simulate** picker (demo mode only).
 
 With **Simulate** you can preview every state: live, innings break, rain delay, a match starting soon, match ended, no live matches, nothing scheduled, API error and offline.
 
 ---
+
+## The website (any device)
+
+https://cricketscore-server.vercel.app works on Windows, macOS, iPhone and Android, with the same live ball-by-ball data and FOUR / SIX / WICKET animations:
+
+| Feature | How |
+|---|---|
+| **Follow teams** | Tap ☆ next to a team. Their matches are starred, listed first and opened automatically; links to a specific match are always respected. |
+| **Alerts** | **Alerts** button → browser notifications for your teams' wickets, starts and results, plus 4s, 6s and wickets when the tab is in the background. In-page toasts when the tab is visible. On iPhone, install to the Home Screen first. |
+| **Pop out** | A small always-on-top scoreboard window: Document Picture-in-Picture in Chrome/Edge, with a canvas + video Picture-in-Picture fallback for Safari. |
+| **Install app** | One click in Chrome/Edge (desktop and Android). Device-specific steps elsewhere: Safari → File → Add to Dock; iPhone → Share → Add to Home Screen. A service worker provides installability, an offline shell and Android notifications. Live scores are never cached. |
+
+Code: `server/public/` (`app.js` page logic, `features.js` favorites/alerts/pop-out/install, `lib/` data layer, `sw.js`).
 
 ## Live ball-by-ball data — no server, no API key
 
