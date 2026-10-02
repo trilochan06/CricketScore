@@ -1,8 +1,8 @@
 {
-  "version": "1.1.1",
+  "version": "1.1.2",
   "url": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
-  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.1.1",
+  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.1.2",
   "minimumSystemVersion": "14.0",
-  "notes": "Fixes the app sometimes staying blank after updating (if it was opened while the previous version was still closing). Includes everything from 1.1.0: favorite teams, notch alerts and focus mode.",
+  "notes": "Smarter match picking and smoother focus mode:\n- Prefers matches with full ball-by-ball coverage, and moves off a match that only gets occasional score updates when a covered one is live\n- Focus mode no longer makes the widget flicker when you switch apps or Spaces",
   "notarized": false
 }
