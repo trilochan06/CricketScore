@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;width:1024px;height:500px;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#f2f4f8}
+  body{background:radial-gradient(900px 500px at 85% 20%, #1d2a4a 0%, transparent 60%), radial-gradient(600px 400px at 0% 100%, #3a1414 0%, transparent 60%), #0b0d12; position:relative}
+  .left{position:absolute;left:64px;top:84px;width:470px}
+  .brand{display:flex;align-items:center;gap:14px;font-weight:800;font-size:26px;letter-spacing:-.02em}
+  .brand img{width:56px;height:56px}
+  h1{font-size:52px;line-height:1.04;letter-spacing:-.035em;margin:26px 0 16px;font-weight:900}
+  h1 em{font-style:normal;color:#ff4d42}
+  p{font-size:20px;color:#a4abb8;margin:0;line-height:1.4}
+  .tags{display:flex;gap:10px;margin-top:26px}
+  .tags span{font-size:15px;font-weight:700;padding:8px 14px;border-radius:999px;background:#1b2029;color:#d6dae2}
+  .phone{position:absolute;right:70px;top:46px;width:330px;height:420px;border-radius:34px;background:#141821;border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(0,0,0,.5);overflow:hidden}
+  .phone .app{position:absolute;inset:0;background:linear-gradient(#10131a,#0b0d12)}
+  .row{margin:22px 22px 0;height:16px;border-radius:8px;background:#1b2029}
+  .row.s{width:55%} .row.m{width:75%}
+  .ball{display:inline-block;width:34px;height:34px;border-radius:50%;margin:22px 0 0 22px;background:#1b2029}
+  .ball.f{background:#1f7cff} .ball.x{background:#a855f7} .ball.w{background:#f0352b}
+  .pin{position:absolute;right:40px;top:150px;width:300px;border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.1);transform:rotate(-2deg)}
+  .six{position:absolute;right:300px;top:300px;font-weight:900;font-size:64px;letter-spacing:-.04em;color:#fff;
+       background:linear-gradient(160deg,#d8b4fe,#a855f7 55%,#6d28d9);-webkit-background-clip:text;background-clip:text;color:transparent;transform:rotate(-8deg);filter:drop-shadow(0 8px 24px rgba(168,85,247,.55))}
+</style></head><body>
+  <div class="left">
+    <div class="brand"><img src="icon.png" alt="">Cricket Live</div>
+    <h1>Every ball, <em>live.</em><br>Always on screen.</h1>
+    <p>Pin a tiny live score over any app. Follow your teams, get wicket alerts.</p>
+    <div class="tags"><span>Free</span><span>No ads</span><span>No sign-up</span></div>
+  </div>
+  <div class="phone"><div class="app">
+    <div class="row m"></div><div class="row s"></div><div class="row"></div><div class="row m"></div>
+    <div><span class="ball"></span><span class="ball f"></span><span class="ball"></span><span class="ball x"></span><span class="ball w"></span></div>
+    <div class="row"></div><div class="row s"></div><div class="row m"></div><div class="row"></div><div class="row s"></div>
+  </div></div>
+  <img class="pin" src="pinned.png" alt="">
+  <div class="six">SIX!</div>
+</body></html>

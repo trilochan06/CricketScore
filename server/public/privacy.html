@@ -15,12 +15,13 @@
     <p class="muted">Short version: no accounts, no tracking, no ads, no personal data.</p>
 
     <h2>Website</h2>
-    <p>The site loads live scores from its own server. It sets no cookies and uses no analytics or advertising trackers.
-      Your browser remembers your last selected match and the "All matches" toggle in local storage, on your device only.
+    <p>The site is a set of static files. Your browser loads the scores itself (see Data source below). It sets no cookies and uses no analytics or advertising trackers.
+      Your browser remembers your followed teams, alert settings, last selected match and the "All matches" toggle in local storage, on your device only.
+      If you turn on Alerts, notifications are created by your own browser from the scores it loads. No push service or server is involved, and nothing is sent anywhere.
       Fonts are loaded from Google Fonts. Our hosting provider (Vercel) keeps standard, short-lived request logs (such as IP address and URL) to operate the service.</p>
 
     <h2>Mac app (Cricket Score)</h2>
-    <p>The app connects only to our score server (to fetch scores and to check once a day whether an update is available).
+    <p>The app loads scores directly from the live-score feed described below, and checks this website once a day for a newer version.
       It doesn't collect, store or send any personal information. Your preferences are stored locally on your Mac.
       If you choose to add your own API key for a different data provider, it's stored in your macOS Keychain and sent only to that provider.</p>
 

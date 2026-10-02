@@ -1,6 +1,29 @@
-# Cricket Score
+# Cricket Live 🏏
 
-A tiny native macOS utility that keeps the live cricket score at the top of your screen. It lives in the menu bar and shows a floating widget. On a MacBook with a notch, the widget grows out of the camera housing. It's written in Swift, SwiftUI and AppKit, and doesn't use any browser or web view.
+**Ball-by-ball live cricket scores that stay on screen while you do other things.** Free, no ads, no account.
+
+**[▶ Open Cricket Live](https://cricketscore-server.vercel.app)** · works on Android, iPhone, Windows, Mac and Chromebook · [Mac notch app](https://cricketscore-server.vercel.app/download)
+
+<p>
+  <img src="launch/screenshots/phone-1080x1920.png" width="230" alt="Live score on a phone">
+  &nbsp;
+  <img src="launch/screenshots/desktop-1366x768.png" width="560" alt="Live score with ball-by-ball commentary on desktop">
+</p>
+
+- **Pin the score over any app.** Tap *Pin score* on Android/iPhone or *Pop out* (P) on desktop. A tiny live score floats on top and updates every ball.
+- **FOUR, SIX and WICKET moments** pop on screen as they happen.
+- **Follow your teams.** Their matches open first, with optional alerts for start, wickets and result.
+- **Full picture:** batters, bowler, last 12 balls, run rates, target and commentary.
+- **Share** the score or a score image to WhatsApp or X.
+- **Install it** from the browser (no app store needed), or get the free **Mac app** that lives beside the notch.
+
+<img src="launch/screenshots/pinned-card-478x200.png" width="240" alt="The floating pinned score">
+
+---
+
+## The Mac app
+
+A tiny native macOS utility that keeps the live score at the top of your screen. It lives in the menu bar and shows a floating widget. On a MacBook with a notch, the widget grows out of the camera housing. It's written in Swift, SwiftUI and AppKit, with no browser or web view.
 
 ```
 Collapsed, notched MacBook             ● IND 184/4  [  camera  ]  32.2 ov
@@ -8,10 +31,9 @@ Collapsed, no notch / Below Notch      ( ● LIVE  IND 184/4 32.2 · AUS 241/8  
 Click the widget  →  score, need X from Y, CRR/RRR, batters, bowler, recent balls, match info
 ```
 
-It shows real ball-by-ball scores straight away from ESPNcricinfo's public feed. There's no account, no API key and no server to run. Simulated demo matches are also built in, for trying every state of the widget.
+Real ball-by-ball scores come from a public live-score feed: no account, no API key, no server to run. Simulated demo matches are also built in, for trying every state of the widget.
 
-- **Website (any device):** https://cricketscore-server.vercel.app
-- **Mac app download:** https://github.com/trilochan06/CricketScore/releases/latest (free; approve it once on first launch)
+- **Download:** https://github.com/trilochan06/CricketScore/releases/latest (free; approve it once on first launch)
 
 ---
 
@@ -74,7 +96,7 @@ This uses `SMAppService.mainApp`. You can turn it off in the same place or in **
   - **Notch alerts.** A 5-second banner in the notch for wickets in your other teams' matches, batter milestones (50, 100…), the last over, match start and result. Alerts can pop up even while the widget is paused or hidden between matches.
 - **Display:** position (Top Center / Top Right / Below Notch), optional drag-to-move with a remembered position, appearance (System/Light/Dark).
   - **Focus.** Hides while a full-screen app is in front or a camera is on (video calls), and keeps the widget out of screen sharing and recordings.
-- **Data:** update frequency (15/30/60 s, default 15), data source (ESPNcricinfo live by default / your own server / Demo / CricketData.org), and a **Simulate** picker (demo mode only).
+- **Data:** update frequency (15/30/60 s, default 15), data source (Live scores by default / your own server / Demo / CricketData.org), and a **Simulate** picker (demo mode only).
 
 With **Simulate** you can preview every state: live, innings break, rain delay, a match starting soon, match ended, no live matches, nothing scheduled, API error and offline.
 

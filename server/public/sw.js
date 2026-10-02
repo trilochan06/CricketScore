@@ -1,9 +1,9 @@
 // Service worker: makes the site installable, keeps the app shell available offline,
 // and shows notifications (required on Android). Live scores are never cached —
 // requests to other origins (ESPN, fonts) pass straight through.
-const CACHE = 'cricket-live-v2';
+const CACHE = 'cricket-live-v3';
 const SHELL = ['/', '/styles.css', '/app.js', '/features.js', '/lib/data.js', '/lib/espn.js', '/lib/scorecard.js',
-  '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png'];
+  '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/maskable-192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {}).then(() => self.skipWaiting()));

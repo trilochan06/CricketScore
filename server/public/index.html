@@ -17,6 +17,14 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Cricket Live: live ball-by-ball cricket scores">
   <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://cricketscore-server.vercel.app/">
+  <meta name="keywords" content="live cricket score, ball by ball, cricket score widget, floating cricket score, IPL live score, cricket score on screen">
+  <meta name="application-name" content="Cricket Live">
+  <meta name="twitter:title" content="Cricket Live — ball-by-ball scores, no clutter">
+  <meta name="twitter:description" content="Follow your team live, ball by ball. Pin a floating score over your other apps. Free, no ads, no account.">
+  <meta name="twitter:image" content="https://cricketscore-server.vercel.app/og.jpg">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Cricket Live", "url": "https://cricketscore-server.vercel.app/", "description": "Live cricket scores, ball by ball, with FOUR, SIX and WICKET animations, a floating scoreboard and alerts for your teams.", "applicationCategory": "SportsApplication", "operatingSystem": "Windows, macOS, Android, iOS, ChromeOS", "browserRequirements": "Requires JavaScript", "image": "https://cricketscore-server.vercel.app/og.jpg", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "isAccessibleForFree": true}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is Cricket Live free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. No ads, no account, no subscription. Scores load straight into your browser, and the code is open source on GitHub."}}, {"@type": "Question", "name": "How do I keep the score on screen while I use other apps on Android?", "acceptedAnswer": {"@type": "Answer", "text": "Open Cricket Live in Chrome, tap Pin score (or Pin your team's match), and a small floating score appears over your other apps. Pinch it to make it smaller and drag it to any corner. It updates every ball."}}, {"@type": "Question", "name": "Does it work on iPhone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. In Safari, tap Share → Add to Home Screen to install it. Pin score uses iPhone's Picture in Picture to keep the score floating."}}, {"@type": "Question", "name": "Can I use it on a Windows laptop?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. In Chrome or Edge, click Install app in the top bar. Then use Pop out (or press P) to get a small always-on-top scoreboard while you work."}}, {"@type": "Question", "name": "How do starred teams work?", "acceptedAnswer": {"@type": "Answer", "text": "Tap ☆ next to any team. Their matches move to the front and open first, and if you turn on Alerts you'll get a notification when they start, lose a wicket or finish."}}, {"@type": "Question", "name": "Will my team's match pin itself automatically?", "acceptedAnswer": {"@type": "Answer", "text": "Browsers need a tap before anything can float over other apps, so it can't pin itself. Once you've pinned once, it follows your team: when their match starts, the pinned score switches to it."}}, {"@type": "Question", "name": "How quick are the updates?", "acceptedAnswer": {"@type": "Answer", "text": "The open match refreshes every few seconds, ball by ball, usually within a few seconds of the TV coverage. Some smaller matches only have total updates, and those are marked."}}, {"@type": "Question", "name": "Is there a Mac app?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. A free Mac app puts the score around the MacBook notch and in the menu bar. It hides itself during full-screen video and calls. Download it below."}}]}</script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/icons/icon-180.png">
@@ -24,14 +32,21 @@
   <meta name="apple-mobile-web-app-title" content="Cricket Live">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"></noscript>
   <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Lower sections wait for the first score so nothing jumps while it loads (app.js removes this; 5 s fallback).
+    document.documentElement.classList.add('booting');
+    setTimeout(function () { document.documentElement.classList.remove('booting'); }, 5000);
+  </script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Cricket Live home">
       <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="var(--live)"/><path d="M8 11c5 3 11 3 16 0M8 21c5-3 11-3 16 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-dasharray="2 2.2" opacity=".85"/></svg>
-      <span>Cricket Live</span>
+      <span class="brand-name">Cricket Live</span>
     </a>
     <div class="topbar-right">
       <button id="btn-popout" class="tool" hidden title="Open a small scoreboard that stays on top of your other windows">
@@ -72,6 +87,17 @@
         </button>
         <span class="workbar-text">Pop the live score into a small window that floats over everything else. <kbd>P</kbd></span>
       </div>
+      <script>
+        // Show the pin/pop-out bar before first paint so the page doesn't jump (same check as MiniScore.mode).
+        (function () {
+          var touch = !matchMedia('(any-pointer: fine)').matches, v = document.createElement('video');
+          var ok = ('documentPictureInPicture' in window && !touch) || ('captureStream' in HTMLCanvasElement.prototype
+            && (document.pictureInPictureEnabled || typeof v.webkitSupportsPresentationMode === 'function'));
+          if (!ok) return;
+          document.getElementById('workbar').hidden = false;
+          if (touch) document.querySelector('.workbar-text').textContent = 'Pin the live score in a small floating window that stays over your other apps — updates ball by ball.';
+        })();
+      </script>
       <article id="players" class="card players" hidden></article>
       <article id="balls" class="card balls" hidden></article>
     </section>
@@ -165,6 +191,44 @@
         <p class="muted small">Why the warning? Apple charges developers $99/year to skip it. The app's full source code is <a href="https://github.com/trilochan06/CricketScore" target="_blank" rel="noopener">public on GitHub</a>.
           Prefer Terminal? <code>xattr -dr com.apple.quarantine /Applications/CricketScore.app</code></p>
       </div>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-title">
+    <h2 id="faq-title" class="section-title">Questions</h2>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Is Cricket Live free?</summary>
+        <p>Yes. No ads, no account, no subscription. Scores load straight into your browser, and the code is open source on GitHub.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do I keep the score on screen while I use other apps on Android?</summary>
+        <p>Open Cricket Live in Chrome, tap Pin score (or Pin your team&#x27;s match), and a small floating score appears over your other apps. Pinch it to make it smaller and drag it to any corner. It updates every ball.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Does it work on iPhone?</summary>
+        <p>Yes. In Safari, tap Share → Add to Home Screen to install it. Pin score uses iPhone&#x27;s Picture in Picture to keep the score floating.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I use it on a Windows laptop?</summary>
+        <p>Yes. In Chrome or Edge, click Install app in the top bar. Then use Pop out (or press P) to get a small always-on-top scoreboard while you work.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How do starred teams work?</summary>
+        <p>Tap ☆ next to any team. Their matches move to the front and open first, and if you turn on Alerts you&#x27;ll get a notification when they start, lose a wicket or finish.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Will my team&#x27;s match pin itself automatically?</summary>
+        <p>Browsers need a tap before anything can float over other apps, so it can&#x27;t pin itself. Once you&#x27;ve pinned once, it follows your team: when their match starts, the pinned score switches to it.</p>
+      </details>
+      <details class="faq-item">
+        <summary>How quick are the updates?</summary>
+        <p>The open match refreshes every few seconds, ball by ball, usually within a few seconds of the TV coverage. Some smaller matches only have total updates, and those are marked.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Is there a Mac app?</summary>
+        <p>Yes. A free Mac app puts the score around the MacBook notch and in the menu bar. It hides itself during full-screen video and calls. Download it below.</p>
+      </details>
     </div>
   </section>
 

@@ -5,7 +5,7 @@
   --border: rgba(15, 20, 30, 0.08);
   --text: #0d1117;
   --text-2: #5b6270;
-  --text-3: #9aa0ab;
+  --text-3: #6b7280;
   --live: #ff3b30;
   --four: #1f7cff;
   --six: #a855f7;
@@ -26,7 +26,7 @@
     --border: rgba(255, 255, 255, 0.07);
     --text: #f2f4f8;
     --text-2: #a4abb8;
-    --text-3: #6b7280;
+    --text-3: #8a919e;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .35);
     color-scheme: dark;
   }
@@ -76,6 +76,7 @@ button { font: inherit; color: inherit; }
 
 /* ───────── Match rail ───────── */
 .rail {
+  min-height: 71px; /* chip height + padding, reserved so the page doesn't jump when matches load */
   display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
   padding: 14px max(16px, calc((100vw - 1120px) / 2)) 4px;
   scroll-snap-type: x proximity;
@@ -113,7 +114,7 @@ button { font: inherit; color: inherit; }
 .card h2, .section-label {
   margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-3);
 }
-.skeleton { color: var(--text-2); padding: 40px 0; text-align: center; }
+.skeleton { color: var(--text-2); padding: 40px 0; text-align: center; min-height: 292px; display: grid; place-items: center; } /* ≈ a loaded scoreboard, so nothing jumps */
 
 /* ───────── Scoreboard ───────── */
 .scoreboard { position: relative; overflow: hidden; }
@@ -131,7 +132,7 @@ button { font: inherit; color: inherit; }
 .sb-sub { color: var(--text-2); font-size: 13px; margin-top: 3px; }
 .teams { display: flex; flex-direction: column; gap: 10px; margin: 18px 0 14px; }
 .team { display: flex; align-items: center; gap: 12px; }
-.team.dim { opacity: .62; }
+.team.dim { opacity: .8; }
 .badge {
   width: 34px; height: 34px; border-radius: 50%; flex: none;
   display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff;
@@ -142,7 +143,20 @@ button { font: inherit; color: inherit; }
 .team-name .tn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .team-name .bat-icon, .team-name .fav { flex: none; }
 .bat-icon { font-size: 13px; margin-left: 6px; opacity: .7; }
-.team-score { font-family: var(--mono); font-weight: 700; font-size: 26px; letter-spacing: -.02em; }
+.team-score { font-family: var(--mono); font-weight: 700; font-size: 26px; letter-spacing: -.02em; white-space: nowrap; }
+.team-score .prev { font-size: .66em; font-weight: 600; color: var(--text-2); }
+.tn-short { display: none; }
+@media (max-width: 520px) {
+  /* Phones: score and overs stack on the right so the team name keeps its room. */
+  .team { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "badge name score" "badge name overs"; column-gap: 10px; row-gap: 0; }
+  .team .badge { grid-area: badge; }
+  .team-name { grid-area: name; }
+  .team-score { grid-area: score; text-align: right; font-size: 24px; line-height: 1.1; }
+  .team.dim .team-score { font-size: 19px; }
+  .team-overs { grid-area: overs; min-width: 0; font-size: 11.5px; }
+  .team .yet { grid-area: score / score / overs / overs; align-self: center; }
+}
+@media (max-width: 420px) { .tn-full { display: none; } .tn-short { display: inline; } }
 .team.dim .team-score { font-size: 20px; }
 .team-overs { font-family: var(--mono); font-size: 13px; color: var(--text-2); min-width: 64px; text-align: right; }
 .yet { color: var(--text-3); font-size: 13px; }
@@ -451,7 +465,7 @@ button { font: inherit; color: inherit; }
 .workbar { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: var(--radius);
   background: linear-gradient(90deg, color-mix(in srgb, var(--four) 14%, var(--surface)), var(--surface)); border: 1px solid var(--border); box-shadow: var(--shadow); }
 .work-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; padding: 10px 16px; border-radius: 12px;
-  background: var(--four); color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; box-shadow: 0 6px 18px color-mix(in srgb, var(--four) 40%, transparent); }
+  background: #1667dc; color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; box-shadow: 0 6px 18px color-mix(in srgb, var(--four) 40%, transparent); }
 .work-btn svg { width: 18px; height: 18px; }
 .work-btn[aria-pressed="true"] { background: var(--surface-2); color: var(--text); box-shadow: none; }
 .workbar-text { font-size: 13px; color: var(--text-2); line-height: 1.4; }
@@ -484,3 +498,24 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border-radius
 .sb-actions { display: flex; align-items: center; gap: 10px; }
 #sheet-desc { line-height: 1.6; }
 @media (max-width: 760px) { .workbar { flex-direction: column; align-items: stretch; text-align: center; } .work-btn { justify-content: center; } }
+
+/* FAQ */
+.faq { max-width: 1120px; margin: 8px auto 24px; padding: 0 16px; }
+.faq-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; align-items: start; }
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0 16px; }
+.faq-item summary { cursor: pointer; list-style: none; padding: 14px 0; font-weight: 600; font-size: 15px; display: flex; justify-content: space-between; gap: 12px; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; color: var(--text-3); font-weight: 400; font-size: 18px; line-height: 1; transition: transform .2s; }
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item p { margin: 0 0 14px; color: var(--text-2); font-size: 14px; line-height: 1.55; }
+@media (max-width: 760px) { .faq-list { grid-template-columns: 1fr; } }
+
+/* Phones: the connection pill becomes a status dot (text stays for screen readers). */
+@media (max-width: 440px) {
+  .pill { font-size: 0; gap: 0; padding: 0; width: 14px; height: 14px; justify-content: center; background: none; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+}
+@media (max-width: 400px) { .topbar-right { gap: 4px; } .tool { padding: 0 7px; } .topbar { gap: 8px; } }
+@media (max-width: 350px) { .brand-name { display: none; } }
+.getapp code { overflow-wrap: anywhere; }
+.booting .col-side, .booting #players, .booting #balls, .booting .everywhere, .booting .getapp, .booting .faq, .booting .footer { display: none; }

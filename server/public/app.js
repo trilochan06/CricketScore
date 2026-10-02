@@ -234,6 +234,7 @@ function render(card) {
   $('#updated').textContent = `Updated ${new Date(card.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`;
   document.title = titleFor(card.match);
   if (typeof syncPopOut === 'function') syncPopOut(MiniScore.isOpen);
+  document.documentElement.classList.remove('booting');
   if (!Onboarding.done && !state.sheetTimer) state.sheetTimer = setTimeout(showTeamSheet, 1500);
 }
 
@@ -252,8 +253,8 @@ function renderScoreboard(card, first) {
     const dim = battingTeamId && battingTeamId !== id;
     return `<div class="team ${dim ? 'dim' : ''}">
       <span class="badge" style="--c:${esc(team.color ?? teamColor(team.short))}">${esc(badgeText(team.short))}</span>
-      <span class="team-name"><span class="tn">${esc(team.name)}</span>${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}<button class="fav" data-team="${esc(team.name)}" aria-pressed="${Favorites.isExactFavorite(team.name) || Favorites.isFavorite(team)}" title="${Favorites.isFavorite(team) ? 'Unfollow' : 'Follow'} ${esc(team.name)}">${Favorites.isFavorite(team) ? '★' : '☆'}</button></span>
-      ${last ? `<span class="team-score"><span class="${changed ? 'bump' : ''}">${esc(text)}</span></span>
+      <span class="team-name"><span class="tn"><span class="tn-full">${esc(team.name)}</span><span class="tn-short">${esc(team.short ?? team.name)}</span></span>${battingTeamId === id ? '<span class="bat-icon" title="Batting">🏏</span>' : ''}<button class="fav" data-team="${esc(team.name)}" aria-pressed="${Favorites.isExactFavorite(team.name) || Favorites.isFavorite(team)}" title="${Favorites.isFavorite(team) ? 'Unfollow' : 'Follow'} ${esc(team.name)}">${Favorites.isFavorite(team) ? '★' : '☆'}</button></span>
+      ${last ? `<span class="team-score"><span class="${changed ? 'bump' : ''}">${inns.slice(0, -1).map((i) => `<span class="prev">${esc(score(i))} &amp; </span>`).join('')}${esc(score(last))}</span></span>
         <span class="team-overs">${esc(last.overs)} ov</span>` : '<span class="yet">Yet to bat</span>'}
     </div>`;
   }).join('');
@@ -294,7 +295,8 @@ function renderScoreboard(card, first) {
     <div class="sb-sub">${esc([m.title, m.series, m.venue].filter(Boolean).join(' · '))}</div>
     <div class="teams">${teams}</div>
     ${situation}
-    ${stats.length ? `<div class="chips">${stats.map(([k, v]) => `<span class="stat"><span>${k}</span><b>${esc(v)}</b></span>`).join('')}</div>` : ''}
+    ${stats.length ? `<div class="chips">${stats.map(([k, v]) => `<span class="stat"><span>${k}</span><b>${esc(v)}</b></span>`).join('')}</div>`
+      : m.status === 'live' ? '<div class="chips" aria-hidden="true"><span class="stat" style="visibility:hidden"><span>CRR</span><b>0</b></span></div>' : ''}
     ${chase}`;
 }
 
@@ -665,6 +667,8 @@ function showTeamSheet(manage = false) {
 }
 
 $('#btn-teams').addEventListener('click', () => showTeamSheet(true));
+// App shortcut (long-press the icon → "My teams") opens straight to the picker.
+if (new URLSearchParams(location.search).get('open') === 'teams') showTeamSheet(true);
 
 const installBtn = $('#btn-install');
 function syncInstallButton() { installBtn.hidden = Install.isInstalled; }
