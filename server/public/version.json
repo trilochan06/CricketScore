@@ -1,8 +1,8 @@
 {
-  "version": "1.1.2",
+  "version": "1.1.3",
   "url": "https://github.com/trilochan06/CricketScore/releases/latest/download/CricketScore.dmg",
-  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.1.2",
+  "releaseNotes": "https://github.com/trilochan06/CricketScore/releases/tag/v1.1.3",
   "minimumSystemVersion": "14.0",
-  "notes": "Smarter match picking and smoother focus mode:\n- Prefers matches with full ball-by-ball coverage, and moves off a match that only gets occasional score updates when a covered one is live\n- Focus mode no longer makes the widget flicker when you switch apps or Spaces",
+  "notes": "Cleaner data source labels in Settings.",
   "notarized": false
 }
